@@ -159,7 +159,7 @@ impl Engine {
             }
         };
         self.app.command(Command::Level(command));
-        if let Some(e) = self.app.session.level_error.take() {
+        if let Some(e) = self.app.session.level_editing_mut().and_then(|l| l.error.take()) {
             return serde_json::json!({"error": e}).to_string();
         }
         self.level_map()
@@ -172,7 +172,7 @@ impl Engine {
             return serde_json::json!({"error": "Ikke i nivåredigeringen."}).to_string();
         };
         let mut v = serde_json::to_value(l.editor.map()).unwrap_or_default();
-        v["made"] = serde_json::json!(self.app.session.level_made);
+        v["made"] = serde_json::json!(l.made);
         v["playing"] = serde_json::json!(!l.active);
         v.to_string()
     }

@@ -4,13 +4,15 @@
 //! (`Frame.hidden` og `instances`) og markeringene (`Frame.lines`) til byen
 //! bygges på nytt når du trykker P.
 
+use super::assembly::EditData;
+use super::camera::Camera;
 use super::session::Session;
 use crate::domain::edit::{ghost, rules, Editor};
 use crate::domain::scene::ModelInstance;
 use crate::domain::world::layout::Ref;
 use crate::domain::world::terrain;
 use crate::ports::driving::{EditCommand, EditView, Event, Grab, Input};
-use glam::{Affine3A, Mat4, Quat, Vec2, Vec3, Vec4};
+use glam::{Affine3A, Mat4, Quat, Vec3};
 use std::collections::HashMap;
 
 /// Fart i redigeringen (m/s), og med Shift.
@@ -90,14 +92,25 @@ fn box_lines(t: &Affine3A, c: Vec3, h: Vec3, color: Vec3, out: &mut Vec<(Vec3, V
     }
 }
 
+/// Redigeringen av byen og merkene i krypten: kjernens `Editor` når du er
+/// i den, musa og linjeverktøyet, og dataene den begynner fra (bare med
+/// `prepare_for_edit`). Den eier sin egen tilstand og får kameraet som
+/// argument; økta gir den videre og tar imot hendelsene.
+#[derive(Default)]
+pub struct Editing {
+    pub(super) editor: Option<Editor>,
+    pub(super) ui: EditUi,
+    pub data: Option<EditData>,
+}
+
 impl Session {
     pub fn editing(&self) -> bool {
-        self.edit.is_some()
+        self.edit.editor.is_some()
     }
 
     /// Redigeringen, til testene og nettlaget.
     pub fn editor(&self) -> Option<&Editor> {
-        self.edit.as_ref()
+        self.edit.editor.as_ref()
     }
 
     /// Øyet og retningen (yaw, pitch), så spillet kan bygges på nytt der
@@ -107,555 +120,32 @@ impl Session {
     }
 
     /// Kameraet slik bildet tegnes (uten kameraspark i redigeringen).
-    fn view_proj(&self) -> Mat4 {
+    pub(super) fn camera(&self) -> Camera {
         let aspect = self.aspect.get().max(0.1);
-        Mat4::perspective_rh(self.fov().to_radians(), aspect, 0.1, 2500.0) * Mat4::look_to_rh(self.eye(), self.forward(), Vec3::Y)
+        let view_proj = Mat4::perspective_rh(self.fov().to_radians(), aspect, 0.1, 2500.0) * Mat4::look_to_rh(self.eye(), self.forward(), Vec3::Y);
+        Camera { eye: self.eye(), forward: self.forward(), yaw: self.yaw, view_proj, aspect }
     }
 
     /// Strålen gjennom et punkt på skjermen (0..1 fra øverst til venstre).
     pub fn screen_ray(&self, at: (f32, f32)) -> (Vec3, Vec3) {
-        let inv = self.view_proj().inverse();
-        let ndc = Vec2::new(at.0 * 2.0 - 1.0, 1.0 - at.1 * 2.0);
-        let near = inv * Vec4::new(ndc.x, ndc.y, 0.0, 1.0);
-        let far = inv * Vec4::new(ndc.x, ndc.y, 1.0, 1.0);
-        let (a, b) = (near.truncate() / near.w, far.truncate() / far.w);
-        (self.eye(), (b - a).normalize())
-    }
-
-    /// Et punkt i verden på skjermen, i enheter av skjermhøyden (så x og y
-    /// er like lange), eller `None` bak kameraet.
-    fn on_screen(&self, p: Vec3) -> Option<Vec2> {
-        let c = self.view_proj() * p.extend(1.0);
-        if c.w <= 1e-4 {
-            return None;
-        }
-        let n = c.truncate() / c.w;
-        Some(Vec2::new((n.x + 1.0) * 0.5 * self.aspect.get().max(0.1), (1.0 - n.y) * 0.5))
+        self.camera().ray(at)
     }
 
     /// Et punkt i verden på skjermen (0..1 fra øverst til venstre).
     pub fn to_screen(&self, p: Vec3) -> Option<(f32, f32)> {
-        self.on_screen(p).map(|v| (v.x / self.aspect.get().max(0.1), v.y))
+        self.camera().to_screen(p)
     }
 
     /// Midten av det valgte og lengden på håndtakene (til testene og
     /// nettlaget).
     pub fn handles(&self) -> Option<(Vec3, f32)> {
-        self.pivot()
-    }
-
-    pub(super) fn screen_point(&self, at: (f32, f32)) -> Vec2 {
-        Vec2::new(at.0 * self.aspect.get().max(0.1), at.1)
-    }
-
-    /// Hvor langt punktet `m` på skjermen er fra streken a–b i verden.
-    pub(super) fn screen_distance(&self, m: Vec2, a: Vec3, b: Vec3) -> Option<f32> {
-        let (a, b) = (self.on_screen(a)?, self.on_screen(b)?);
-        let ab = b - a;
-        let t = ((m - a).dot(ab) / ab.length_squared().max(1e-9)).clamp(0.0, 1.0);
-        Some((m - (a + ab * t)).length())
+        self.edit.pivot(&self.camera())
     }
 
     /// En kommando fra redigeringen. Gir om den gjorde noe.
     pub fn edit_command(&mut self, c: EditCommand) -> bool {
-        if let EditCommand::Enter = c {
-            let Some(d) = self.edit_data.clone() else {
-                return false;
-            };
-            let mut e = Editor::new(d.sources, d.layout, d.contents, d.approved);
-            if let Some((l, c, k)) = d.baseline {
-                e.set_baseline(l, c, k);
-            }
-            self.edit = Some(e);
-            self.edit_ui = EditUi::default();
-            self.push_edit_view();
-            return true;
-        }
-        if self.edit.is_none() {
-            return false;
-        }
-        let done = match c {
-            EditCommand::Enter => true,
-            EditCommand::Leave => {
-                self.edit = None;
-                self.pending.push(Event::Edit(None));
-                return true;
-            }
-            EditCommand::Press { at, add, grab } => {
-                self.edit_ui.carry = Vec3::ZERO;
-                self.edit_ui.carry_turn = 0.0;
-                self.edit_ui.standing.clear();
-                // Ruta til den valgte innbyggeren: en stolpe tas, et trykk
-                // på streken legger til et punkt der (og det dras).
-                // Det nye punktet og draget angres som ett steg.
-                let point = match (grab, self.route_point_at(at), self.route_npc()) {
-                    (Grab::Move, Some(k), _) => {
-                        self.editor_mut().begin_group();
-                        Some(k)
-                    }
-                    // Ikke når pekeren står på innbyggeren selv (den dras).
-                    (Grab::Move, None, Some(r)) if !self.on_selected(at) => self.route_insert_at(at).and_then(|(k, p)| {
-                        self.editor_mut().begin_group();
-                        self.editor_mut().route_insert(&r, k, p)
-                    }),
-                    _ => None,
-                };
-                self.edit_ui.route_point = point;
-                if let Some(k) = point {
-                    self.edit_ui.drag = Some((Handle::Route(k), at));
-                    self.edit_ui.pressed = Some(at);
-                    self.push_edit_view();
-                    return true;
-                }
-                let handle = match grab {
-                    Grab::Lift => Some(Handle::Lift),
-                    Grab::Turn => Some(Handle::Turn),
-                    // Pilene går gjennom tingen: står pekeren på det
-                    // valgte, er det tingen du tar, ikke pila.
-                    Grab::Move => self.handle_at(at).filter(|h| {
-                        let (o, d) = self.screen_ray(at);
-                        let e = self.edit.as_ref().expect("i redigeringen");
-                        *h == Handle::Ring || !e.hit(o, d).is_some_and(|r| e.selection.contains(&r))
-                    }),
-                };
-                match handle {
-                    // Med Alt eller Ctrl gjelder draget det valgte; er
-                    // ingenting valgt, velges det under pekeren først.
-                    Some(h) => {
-                        if self.editor_mut().selection.is_empty() {
-                            self.pick_at(Some(at), add);
-                        }
-                        self.edit_ui.drag = Some((h, at));
-                        self.edit_ui.pressed = (h == Handle::Lift || h == Handle::Turn).then_some(at);
-                        self.editor_mut().begin_group();
-                        true
-                    }
-                    // Trykk på en ting: den velges (er den alt valgt, blir
-                    // valget som det er, så flere kan dras sammen), og den
-                    // dras langs bakken når musa går.
-                    None => {
-                        let (o, d) = self.screen_ray(at);
-                        let e = self.editor_mut();
-                        let first = e.hit(o, d);
-                        let keep = !add && first.as_ref().is_some_and(|r| e.selection.contains(r));
-                        // Er den alt valgt, venter valget til knappen slippes
-                        // uten drag (klikk igjen gir det neste under pekeren).
-                        self.edit_ui.click = keep.then_some(at);
-                        let changed = keep || self.pick_at(Some(at), add);
-                        if !add && first.is_some() && !self.editor_mut().selection.is_empty() {
-                            self.edit_ui.drag = Some((Handle::Ground, at));
-                            self.edit_ui.pressed = Some(at);
-                            self.edit_ui.standing = self.editor_mut().standing();
-                            self.editor_mut().begin_group();
-                        }
-                        changed
-                    }
-                }
-            }
-            EditCommand::Drag { to } => self.drag_to(to),
-            EditCommand::Release => {
-                let click = self.edit_ui.click.take().filter(|_| self.edit_ui.pressed.is_some());
-                // Alt+klikk uten drag: det bakerste under pekeren.
-                let deepest = match (self.edit_ui.drag, self.edit_ui.pressed) {
-                    (Some((Handle::Lift, _)), Some(at)) => Some(at),
-                    _ => None,
-                };
-                // Det som sto på noe, settes ned igjen etter et drag langs
-                // bakken (i samme angresteg som draget).
-                let standing = std::mem::take(&mut self.edit_ui.standing);
-                if matches!(self.edit_ui.drag, Some((Handle::Ground, _))) && self.edit_ui.pressed.is_none() && !standing.is_empty() {
-                    self.editor_mut().settle(&standing);
-                }
-                self.edit_ui.drag = None;
-                self.edit_ui.pressed = None;
-                self.editor_mut().end_group();
-                if let Some(at) = click {
-                    self.pick_at(Some(at), false);
-                }
-                if let Some(at) = deepest {
-                    let (o, d) = self.screen_ray(at);
-                    self.editor_mut().pick_deepest(o, d);
-                }
-                true
-            }
-            EditCommand::Pick { add, at } => self.pick_at(at, add),
-            EditCommand::Cycle => self.editor_mut().cycle().is_some(),
-            EditCommand::Move(d) => {
-                self.editor_mut().translate(d);
-                true
-            }
-            EditCommand::Rotate(a) => {
-                self.editor_mut().rotate(a);
-                true
-            }
-            EditCommand::SetPose { r, pose } => {
-                self.editor_mut().set_pose(&r, pose);
-                true
-            }
-            EditCommand::Drop => {
-                self.editor_mut().drop_to_surface();
-                true
-            }
-            EditCommand::Copy => {
-                self.editor_mut().duplicate();
-                true
-            }
-            // Er et punkt på ruta tatt, er det punktet som slettes.
-            EditCommand::Delete => match (self.edit_ui.route_point.take(), self.route_npc()) {
-                (Some(k), Some(r)) => self.editor_mut().route_remove(&r, k),
-                _ => {
-                    self.editor_mut().delete();
-                    true
-                }
-            },
-            EditCommand::Group(name) => match self.editor_mut().make_group(&name) {
-                Ok(_) => true,
-                Err(why) => {
-                    self.edit_ui.error = Some(why);
-                    false
-                }
-            },
-            EditCommand::Ungroup => self.editor_mut().ungroup() > 0,
-            EditCommand::Place { model, at } => {
-                self.edit_ui.ghost = None;
-                match self.ghost_pose(&model, at) {
-                    Some(pose) => self.editor_mut().place(&model, pose).is_some(),
-                    None => false,
-                }
-            }
-            EditCommand::Ghost(g) => {
-                self.edit_ui.ghost = g.and_then(|(model, at)| {
-                    let pose = self.ghost_pose(&model, Some(at))?;
-                    let bad = self.edit.as_ref()?.ghost_breaches(&model, &pose);
-                    Some((model, at, pose, bad))
-                });
-                true
-            }
-            EditCommand::GhostTurn(a) => {
-                self.edit_ui.ghost_turn = (self.edit_ui.ghost_turn + a).rem_euclid(std::f32::consts::TAU);
-                if let Some((model, at, _, _)) = self.edit_ui.ghost.clone() {
-                    return self.edit_command(EditCommand::Ghost(Some((model, at))));
-                }
-                true
-            }
-            EditCommand::Snap(on) => {
-                self.edit_ui.snap = on;
-                true
-            }
-            EditCommand::SetProp { key, value } => match self.editor_mut().set_prop(&key, &value) {
-                Ok(()) => true,
-                Err(why) => {
-                    self.edit_ui.error = Some(why);
-                    false
-                }
-            },
-            EditCommand::UndoTo(n) => self.editor_mut().undo_to(n),
-            EditCommand::SelectUnder { k, add } => self.editor_mut().select_under(k, add).is_some(),
-            EditCommand::CycleBack => self.editor_mut().cycle_back().is_some(),
-            EditCommand::SelectBox { a, b, add } => {
-                let mut e = self.edit.take().expect("i redigeringen");
-                let n = e.select_box(self.eye(), REACH, a, b, add, |p| self.to_screen(p));
-                self.edit = Some(e);
-                n > 0
-            }
-            EditCommand::LinePoint { at } => match self.ground_at(Some(at)) {
-                Some(p) => {
-                    self.edit_ui.draft.push(p);
-                    true
-                }
-                None => false,
-            },
-            EditCommand::LineFinish(kind) => {
-                let points = std::mem::take(&mut self.edit_ui.draft);
-                !self.editor_mut().line(&points, &kind).is_empty()
-            }
-            EditCommand::LineCancel => {
-                self.edit_ui.draft.clear();
-                true
-            }
-            EditCommand::Line { points, kind } => !self.editor_mut().line(&points, &kind).is_empty(),
-            EditCommand::WallHeight(h) => {
-                self.editor_mut().set_wall_height(h);
-                true
-            }
-            EditCommand::Undo => self.editor_mut().undo(),
-            EditCommand::Redo => self.editor_mut().redo(),
-        };
-        self.push_edit_view();
-        done
-    }
-
-    /// Pekeren står på noe som er valgt.
-    fn on_selected(&self, at: (f32, f32)) -> bool {
-        let (o, d) = self.screen_ray(at);
-        self.edit.as_ref().is_some_and(|e| e.hit(o, d).is_some_and(|r| e.selection.contains(&r)))
-    }
-
-    fn editor_mut(&mut self) -> &mut Editor {
-        self.edit.as_mut().expect("i redigeringen")
-    }
-
-    fn pick_at(&mut self, at: Option<(f32, f32)>, add: bool) -> bool {
-        let (o, d) = match at {
-            Some(at) => self.screen_ray(at),
-            None => (self.eye(), self.forward()),
-        };
-        self.editor_mut().pick(o, d, add).is_some()
-    }
-
-    fn push_edit_view(&mut self) {
-        let Some(e) = &self.edit else { return };
-        let view = EditView {
-            selected: e.selected(),
-            breaches: e.breaches().iter().map(|b| (b.r.clone(), b.why.clone())).collect(),
-            can_undo: e.can_undo(),
-            can_redo: e.can_redo(),
-            dirty: e.dirty(),
-            clean: e.clean(),
-            draft: self.edit_ui.draft.len(),
-            under: e.under().iter().map(|r| (e.label(r), e.selection.contains(r))).collect(),
-            props: e.props(),
-            history: e.history().0,
-            step: e.history().1,
-            snap: self.edit_ui.snap,
-            ghost: self.edit_ui.ghost.as_ref().map(|g| g.3.clone()),
-            error: self.edit_ui.error.take(),
-            group: e.single_group(),
-            route_point: self.edit_ui.route_point.filter(|_| self.route_npc().is_some()),
-        };
-        self.pending.push(Event::Edit(Some(view)));
-    }
-
-    /// Der strålen treffer bakken eller noe å stå på.
-    fn ground_hit(&self, eye: Vec3, dir: Vec3) -> Option<Vec3> {
-        let e = self.edit.as_ref()?;
-        let mut last = eye;
-        let mut s = 0.0;
-        while s < REACH {
-            s += 0.1;
-            let p = eye + dir * s;
-            let ground = e.surface_under(p.x, p.z, last.y.max(p.y) + 0.01, None);
-            if p.y <= ground {
-                return Some(Vec3::new(p.x, ground, p.z));
-            }
-            last = p;
-        }
-        None
-    }
-
-    /// Der pekeren (eller midten av bildet) treffer bakken eller noe å stå på.
-    pub fn ground_at(&self, at: Option<(f32, f32)>) -> Option<Vec3> {
-        let (o, d) = match at {
-            Some(at) => self.screen_ray(at),
-            None => (self.eye(), self.forward()),
-        };
-        self.ground_hit(o, d)
-    }
-
-    /// Der en ny `model` settes under pekeren: vendt mot deg (modellene har
-    /// forsida mot lokal +Z) og dreid med R, festet om festet er på, og
-    /// satt ned så bunnen av modellen står på det som er under.
-    pub fn ghost_pose(&self, model: &str, at: Option<(f32, f32)>) -> Option<Affine3A> {
-        let e = self.edit.as_ref()?;
-        let p = self.ground_at(at)?;
-        let mut pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(self.yaw + self.edit_ui.ghost_turn), p);
-        if self.edit_ui.snap {
-            pose = ghost::snap_pose(pose);
-        }
-        let o = Vec3::from(pose.translation);
-        let ground = e.surface_under(o.x, o.z, p.y + 0.3, None);
-        let foot = e.scene().bounds(model).map(|(lo, hi)| rules::world_box(lo, hi, &pose).0.y).unwrap_or(o.y);
-        pose.translation.y += ground - foot;
-        Some(pose)
-    }
-
-    /// Der siktekorset treffer (midt i bildet).
-    pub fn aim_point(&self) -> Option<Vec3> {
-        self.ground_at(None)
-    }
-
-    /// Midten av det valgte og hvor lange håndtakene er.
-    fn pivot(&self) -> Option<(Vec3, f32)> {
-        let e = self.edit.as_ref()?;
-        let sel = e.selected();
-        if sel.is_empty() {
-            return None;
-        }
-        let p = sel.iter().map(|s| Vec3::from(s.pose.translation)).sum::<Vec3>() / sel.len() as f32;
-        Some((p, (p.distance(self.eye()) * 0.12).clamp(0.4, 4.0)))
-    }
-
-    fn ring_points(p: Vec3, len: f32) -> Vec<Vec3> {
-        (0..=32).map(|k| p + Quat::from_rotation_y(k as f32 / 32.0 * std::f32::consts::TAU) * Vec3::X * len * 0.8).collect()
-    }
-
-    /// Håndtaket under pekeren, om noe.
-    fn handle_at(&self, at: (f32, f32)) -> Option<Handle> {
-        let (p, len) = self.pivot()?;
-        let m = self.screen_point(at);
-        let near = |a: Vec3, b: Vec3| self.screen_distance(m, a, b);
-        let mut best: Option<(f32, Handle)> = None;
-        for (k, (axis, _)) in AXES.iter().enumerate() {
-            if let Some(d) = near(p, p + *axis * len) {
-                if d < GRAB && best.is_none_or(|(b, _)| d < b) {
-                    best = Some((d, Handle::Axis(k)));
-                }
-            }
-        }
-        for w in Self::ring_points(p, len).windows(2) {
-            if let Some(d) = near(w[0], w[1]) {
-                if d < GRAB && best.is_none_or(|(b, _)| d < b) {
-                    best = Some((d, Handle::Ring));
-                }
-            }
-        }
-        best.map(|(_, h)| h)
-    }
-
-    /// Dra det valgte med håndtaket fra forrige punkt til `to`.
-    fn drag_to(&mut self, to: (f32, f32)) -> bool {
-        let (Some((handle, from)), Some((p, _))) = (self.edit_ui.drag, self.pivot()) else {
-            return false;
-        };
-        // Et trykk blir først et drag når musa har gått et stykke.
-        if let Some(at) = self.edit_ui.pressed {
-            if (self.screen_point(to) - self.screen_point(at)).length() < SLACK {
-                return false;
-            }
-            self.edit_ui.pressed = None;
-        }
-        self.edit_ui.drag = Some((handle, to));
-        let on_plane = |at: (f32, f32)| {
-            let (o, d) = self.screen_ray(at);
-            (d.y.abs() > 1e-4).then(|| o + d * ((p.y - o.y) / d.y)).filter(|_| ((p.y - o.y) / d.y) > 0.0)
-        };
-        match handle {
-            Handle::Route(k) => {
-                let (Some(r), Some(at)) = (self.route_npc(), self.ground_at(Some(to))) else {
-                    return false;
-                };
-                let at = if self.edit_ui.snap { Vec3::new(ghost::snap(at.x, ghost::GRID), at.y, ghost::snap(at.z, ghost::GRID)) } else { at };
-                self.editor_mut().route_move(&r, k, at);
-            }
-            Handle::Ground => {
-                let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
-                    return false;
-                };
-                self.translate_snapped(p, Vec3::new(b.x - a.x, 0.0, b.z - a.z));
-            }
-            Handle::Lift => {
-                let (Some(a), Some(b)) = (self.on_screen(p), self.on_screen(p + Vec3::Y)) else {
-                    return false;
-                };
-                let s = b - a;
-                let moved = (self.screen_point(to) - self.screen_point(from)).dot(s) / s.length_squared().max(1e-9);
-                self.translate_snapped(p, Vec3::Y * moved);
-            }
-            Handle::Turn => {
-                // En bildebredde bortover er en hel runde; mot høyre dreier
-                // med klokka sett ovenfra.
-                let turn = -(to.0 - from.0) * std::f32::consts::TAU;
-                self.rotate_snapped(turn);
-            }
-            Handle::Axis(k) => {
-                let axis = AXES[k].0;
-                let (Some(a), Some(b)) = (self.on_screen(p), self.on_screen(p + axis)) else {
-                    return false;
-                };
-                let s = b - a;
-                let moved = (self.screen_point(to) - self.screen_point(from)).dot(s) / s.length_squared().max(1e-9);
-                self.translate_snapped(p, axis * moved);
-            }
-            Handle::Ring => {
-                // Vinkelen rundt midten i planet der det valgte står.
-                let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
-                    return false;
-                };
-                let angle = |v: Vec3| (-(v.z - p.z)).atan2(v.x - p.x);
-                let mut turn = angle(b) - angle(a);
-                if turn > std::f32::consts::PI {
-                    turn -= std::f32::consts::TAU;
-                } else if turn < -std::f32::consts::PI {
-                    turn += std::f32::consts::TAU;
-                }
-                self.rotate_snapped(turn);
-            }
-        }
-        true
-    }
-
-    /// Flytt det valgte `delta`; med festet på samles flyttingen til midten
-    /// `p` havner på rutenettet (bare langs aksene som flyttes).
-    fn translate_snapped(&mut self, p: Vec3, delta: Vec3) {
-        if !self.edit_ui.snap {
-            self.editor_mut().translate(delta);
-            return;
-        }
-        self.edit_ui.carry += delta;
-        let target = p + self.edit_ui.carry;
-        let mut step = Vec3::ZERO;
-        for k in 0..3 {
-            if self.edit_ui.carry[k] != 0.0 {
-                step[k] = ghost::snap(target[k], ghost::GRID) - p[k];
-            }
-        }
-        if step != Vec3::ZERO {
-            self.edit_ui.carry -= step;
-            self.editor_mut().translate(step);
-        }
-    }
-
-    /// Drei det valgte `turn`; med festet på i hele steg på 15°.
-    fn rotate_snapped(&mut self, turn: f32) {
-        if !self.edit_ui.snap {
-            self.editor_mut().rotate(turn);
-            return;
-        }
-        self.edit_ui.carry_turn += turn;
-        let n = (self.edit_ui.carry_turn / ghost::ANGLE).round();
-        if n != 0.0 {
-            self.edit_ui.carry_turn -= n * ghost::ANGLE;
-            self.editor_mut().rotate(n * ghost::ANGLE);
-        }
-    }
-
-    /// Markeringene: boksene rundt det valgte (gule) og det som bryter en
-    /// regel (røde), håndtakene, og linjeutkastet.
-    pub(super) fn edit_lines(&self) -> Vec<(Vec3, Vec3, Vec3)> {
-        let Some(e) = &self.edit else { return vec![] };
-        let mut out = vec![];
-        let mut seen = std::collections::HashSet::new();
-        for b in e.breaches() {
-            if seen.insert(b.r.clone()) {
-                if let Some((t, c, h)) = e.box_of(&b.r) {
-                    box_lines(&t, c, h, BREACH, &mut out);
-                }
-            }
-        }
-        for s in e.selected() {
-            box_lines(&s.pose, s.center, s.half * 1.01, SELECTED, &mut out);
-        }
-        if let Some((p, len)) = self.pivot() {
-            for (axis, color) in AXES {
-                out.push((p, p + axis * len, color));
-            }
-            for w in Self::ring_points(p, len).windows(2) {
-                out.push((w[0], w[1], RING));
-            }
-        }
-        if let Some((model, _, pose, bad)) = &self.edit_ui.ghost {
-            if let Some((lo, hi)) = e.scene().bounds(model) {
-                box_lines(pose, (lo + hi) * 0.5, (hi - lo) * 0.5, if bad.is_empty() { GHOST_OK } else { GHOST_BAD }, &mut out);
-            }
-        }
-        for w in self.edit_ui.draft.windows(2) {
-            out.push((w[0] + Vec3::Y * 0.05, w[1] + Vec3::Y * 0.05, DRAFT));
-        }
-        for p in &self.edit_ui.draft {
-            out.push((*p, *p + Vec3::Y * 1.5, DRAFT));
-        }
-        self.mark_lines(&mut out);
-        out
+        let cam = self.camera();
+        self.edit.command(c, &cam, &mut self.pending)
     }
 
     /// Flyging i redigeringen: rett dit du ser, gjennom alt; mellomrom
@@ -679,11 +169,499 @@ impl Session {
         self.body.pos = pos;
         self.body.vel_y = 0.0;
     }
+}
+
+impl Editing {
+    /// En kommando fra redigeringen. Gir om den gjorde noe.
+    pub fn command(&mut self, c: EditCommand, cam: &Camera, events: &mut Vec<Event>) -> bool {
+        if let EditCommand::Enter = c {
+            let Some(d) = self.data.clone() else {
+                return false;
+            };
+            let mut e = Editor::new(d.sources, d.layout, d.contents, d.approved);
+            if let Some((l, c, k)) = d.baseline {
+                e.set_baseline(l, c, k);
+            }
+            self.editor = Some(e);
+            self.ui = EditUi::default();
+            self.push_view(events);
+            return true;
+        }
+        if self.editor.is_none() {
+            return false;
+        }
+        let done = match c {
+            EditCommand::Enter => true,
+            EditCommand::Leave => {
+                self.editor = None;
+                events.push(Event::Edit(None));
+                return true;
+            }
+            EditCommand::Press { at, add, grab } => {
+                self.ui.carry = Vec3::ZERO;
+                self.ui.carry_turn = 0.0;
+                self.ui.standing.clear();
+                // Ruta til den valgte innbyggeren: en stolpe tas, et trykk
+                // på streken legger til et punkt der (og det dras).
+                // Det nye punktet og draget angres som ett steg.
+                let point = match (grab, self.route_point_at(at, cam), self.route_npc()) {
+                    (Grab::Move, Some(k), _) => {
+                        self.editor_mut().begin_group();
+                        Some(k)
+                    }
+                    // Ikke når pekeren står på innbyggeren selv (den dras).
+                    (Grab::Move, None, Some(r)) if !self.on_selected(at, cam) => self.route_insert_at(at, cam).and_then(|(k, p)| {
+                        self.editor_mut().begin_group();
+                        self.editor_mut().route_insert(&r, k, p)
+                    }),
+                    _ => None,
+                };
+                self.ui.route_point = point;
+                if let Some(k) = point {
+                    self.ui.drag = Some((Handle::Route(k), at));
+                    self.ui.pressed = Some(at);
+                    self.push_view(events);
+                    return true;
+                }
+                let handle = match grab {
+                    Grab::Lift => Some(Handle::Lift),
+                    Grab::Turn => Some(Handle::Turn),
+                    // Pilene går gjennom tingen: står pekeren på det
+                    // valgte, er det tingen du tar, ikke pila.
+                    Grab::Move => self.handle_at(at, cam).filter(|h| {
+                        let (o, d) = cam.ray(at);
+                        let e = self.editor.as_ref().expect("i redigeringen");
+                        *h == Handle::Ring || !e.hit(o, d).is_some_and(|r| e.selection.contains(&r))
+                    }),
+                };
+                match handle {
+                    // Med Alt eller Ctrl gjelder draget det valgte; er
+                    // ingenting valgt, velges det under pekeren først.
+                    Some(h) => {
+                        if self.editor_mut().selection.is_empty() {
+                            self.pick_at(Some(at), add, cam);
+                        }
+                        self.ui.drag = Some((h, at));
+                        self.ui.pressed = (h == Handle::Lift || h == Handle::Turn).then_some(at);
+                        self.editor_mut().begin_group();
+                        true
+                    }
+                    // Trykk på en ting: den velges (er den alt valgt, blir
+                    // valget som det er, så flere kan dras sammen), og den
+                    // dras langs bakken når musa går.
+                    None => {
+                        let (o, d) = cam.ray(at);
+                        let e = self.editor_mut();
+                        let first = e.hit(o, d);
+                        let keep = !add && first.as_ref().is_some_and(|r| e.selection.contains(r));
+                        // Er den alt valgt, venter valget til knappen slippes
+                        // uten drag (klikk igjen gir det neste under pekeren).
+                        self.ui.click = keep.then_some(at);
+                        let changed = keep || self.pick_at(Some(at), add, cam);
+                        if !add && first.is_some() && !self.editor_mut().selection.is_empty() {
+                            self.ui.drag = Some((Handle::Ground, at));
+                            self.ui.pressed = Some(at);
+                            self.ui.standing = self.editor_mut().standing();
+                            self.editor_mut().begin_group();
+                        }
+                        changed
+                    }
+                }
+            }
+            EditCommand::Drag { to } => self.drag_to(to, cam),
+            EditCommand::Release => {
+                let click = self.ui.click.take().filter(|_| self.ui.pressed.is_some());
+                // Alt+klikk uten drag: det bakerste under pekeren.
+                let deepest = match (self.ui.drag, self.ui.pressed) {
+                    (Some((Handle::Lift, _)), Some(at)) => Some(at),
+                    _ => None,
+                };
+                // Det som sto på noe, settes ned igjen etter et drag langs
+                // bakken (i samme angresteg som draget).
+                let standing = std::mem::take(&mut self.ui.standing);
+                if matches!(self.ui.drag, Some((Handle::Ground, _))) && self.ui.pressed.is_none() && !standing.is_empty() {
+                    self.editor_mut().settle(&standing);
+                }
+                self.ui.drag = None;
+                self.ui.pressed = None;
+                self.editor_mut().end_group();
+                if let Some(at) = click {
+                    self.pick_at(Some(at), false, cam);
+                }
+                if let Some(at) = deepest {
+                    let (o, d) = cam.ray(at);
+                    self.editor_mut().pick_deepest(o, d);
+                }
+                true
+            }
+            EditCommand::Pick { add, at } => self.pick_at(at, add, cam),
+            EditCommand::Cycle => self.editor_mut().cycle().is_some(),
+            EditCommand::Move(d) => {
+                self.editor_mut().translate(d);
+                true
+            }
+            EditCommand::Rotate(a) => {
+                self.editor_mut().rotate(a);
+                true
+            }
+            EditCommand::SetPose { r, pose } => {
+                self.editor_mut().set_pose(&r, pose);
+                true
+            }
+            EditCommand::Drop => {
+                self.editor_mut().drop_to_surface();
+                true
+            }
+            EditCommand::Copy => {
+                self.editor_mut().duplicate();
+                true
+            }
+            // Er et punkt på ruta tatt, er det punktet som slettes.
+            EditCommand::Delete => match (self.ui.route_point.take(), self.route_npc()) {
+                (Some(k), Some(r)) => self.editor_mut().route_remove(&r, k),
+                _ => {
+                    self.editor_mut().delete();
+                    true
+                }
+            },
+            EditCommand::Group(name) => match self.editor_mut().make_group(&name) {
+                Ok(_) => true,
+                Err(why) => {
+                    self.ui.error = Some(why);
+                    false
+                }
+            },
+            EditCommand::Ungroup => self.editor_mut().ungroup() > 0,
+            EditCommand::Place { model, at } => {
+                self.ui.ghost = None;
+                match self.ghost_pose(&model, at, cam) {
+                    Some(pose) => self.editor_mut().place(&model, pose).is_some(),
+                    None => false,
+                }
+            }
+            EditCommand::Ghost(g) => {
+                self.ui.ghost = g.and_then(|(model, at)| {
+                    let pose = self.ghost_pose(&model, Some(at), cam)?;
+                    let bad = self.editor.as_ref()?.ghost_breaches(&model, &pose);
+                    Some((model, at, pose, bad))
+                });
+                true
+            }
+            EditCommand::GhostTurn(a) => {
+                self.ui.ghost_turn = (self.ui.ghost_turn + a).rem_euclid(std::f32::consts::TAU);
+                if let Some((model, at, _, _)) = self.ui.ghost.clone() {
+                    return self.command(EditCommand::Ghost(Some((model, at))), cam, events);
+                }
+                true
+            }
+            EditCommand::Snap(on) => {
+                self.ui.snap = on;
+                true
+            }
+            EditCommand::SetProp { key, value } => match self.editor_mut().set_prop(&key, &value) {
+                Ok(()) => true,
+                Err(why) => {
+                    self.ui.error = Some(why);
+                    false
+                }
+            },
+            EditCommand::UndoTo(n) => self.editor_mut().undo_to(n),
+            EditCommand::SelectUnder { k, add } => self.editor_mut().select_under(k, add).is_some(),
+            EditCommand::CycleBack => self.editor_mut().cycle_back().is_some(),
+            EditCommand::SelectBox { a, b, add } => self.editor_mut().select_box(cam.eye, REACH, a, b, add, |p| cam.to_screen(p)) > 0,
+            EditCommand::LinePoint { at } => match self.ground_at(Some(at), cam) {
+                Some(p) => {
+                    self.ui.draft.push(p);
+                    true
+                }
+                None => false,
+            },
+            EditCommand::LineFinish(kind) => {
+                let points = std::mem::take(&mut self.ui.draft);
+                !self.editor_mut().line(&points, &kind).is_empty()
+            }
+            EditCommand::LineCancel => {
+                self.ui.draft.clear();
+                true
+            }
+            EditCommand::Line { points, kind } => !self.editor_mut().line(&points, &kind).is_empty(),
+            EditCommand::WallHeight(h) => {
+                self.editor_mut().set_wall_height(h);
+                true
+            }
+            EditCommand::Undo => self.editor_mut().undo(),
+            EditCommand::Redo => self.editor_mut().redo(),
+        };
+        self.push_view(events);
+        done
+    }
+
+    /// Pekeren står på noe som er valgt.
+    fn on_selected(&self, at: (f32, f32), cam: &Camera) -> bool {
+        let (o, d) = cam.ray(at);
+        self.editor.as_ref().is_some_and(|e| e.hit(o, d).is_some_and(|r| e.selection.contains(&r)))
+    }
+
+    fn editor_mut(&mut self) -> &mut Editor {
+        self.editor.as_mut().expect("i redigeringen")
+    }
+
+    fn pick_at(&mut self, at: Option<(f32, f32)>, add: bool, cam: &Camera) -> bool {
+        let (o, d) = cam.ray_or_forward(at);
+        self.editor_mut().pick(o, d, add).is_some()
+    }
+
+    fn push_view(&mut self, events: &mut Vec<Event>) {
+        let Some(e) = &self.editor else { return };
+        let view = EditView {
+            selected: e.selected(),
+            breaches: e.breaches().iter().map(|b| (b.r.clone(), b.why.clone())).collect(),
+            can_undo: e.can_undo(),
+            can_redo: e.can_redo(),
+            dirty: e.dirty(),
+            clean: e.clean(),
+            draft: self.ui.draft.len(),
+            under: e.under().iter().map(|r| (e.label(r), e.selection.contains(r))).collect(),
+            props: e.props(),
+            history: e.history().0,
+            step: e.history().1,
+            snap: self.ui.snap,
+            ghost: self.ui.ghost.as_ref().map(|g| g.3.clone()),
+            error: self.ui.error.take(),
+            group: e.single_group(),
+            route_point: self.ui.route_point.filter(|_| self.route_npc().is_some()),
+        };
+        events.push(Event::Edit(Some(view)));
+    }
+
+    /// Der strålen treffer bakken eller noe å stå på.
+    fn ground_hit(&self, eye: Vec3, dir: Vec3) -> Option<Vec3> {
+        let e = self.editor.as_ref()?;
+        let mut last = eye;
+        let mut s = 0.0;
+        while s < REACH {
+            s += 0.1;
+            let p = eye + dir * s;
+            let ground = e.surface_under(p.x, p.z, last.y.max(p.y) + 0.01, None);
+            if p.y <= ground {
+                return Some(Vec3::new(p.x, ground, p.z));
+            }
+            last = p;
+        }
+        None
+    }
+
+    /// Der pekeren (eller midten av bildet) treffer bakken eller noe å stå på.
+    pub(super) fn ground_at(&self, at: Option<(f32, f32)>, cam: &Camera) -> Option<Vec3> {
+        let (o, d) = cam.ray_or_forward(at);
+        self.ground_hit(o, d)
+    }
+
+    /// Der en ny `model` settes under pekeren: vendt mot deg (modellene har
+    /// forsida mot lokal +Z) og dreid med R, festet om festet er på, og
+    /// satt ned så bunnen av modellen står på det som er under.
+    fn ghost_pose(&self, model: &str, at: Option<(f32, f32)>, cam: &Camera) -> Option<Affine3A> {
+        let e = self.editor.as_ref()?;
+        let p = self.ground_at(at, cam)?;
+        let mut pose = Affine3A::from_rotation_translation(Quat::from_rotation_y(cam.yaw + self.ui.ghost_turn), p);
+        if self.ui.snap {
+            pose = ghost::snap_pose(pose);
+        }
+        let o = Vec3::from(pose.translation);
+        let ground = e.surface_under(o.x, o.z, p.y + 0.3, None);
+        let foot = e.scene().bounds(model).map(|(lo, hi)| rules::world_box(lo, hi, &pose).0.y).unwrap_or(o.y);
+        pose.translation.y += ground - foot;
+        Some(pose)
+    }
+
+    /// Midten av det valgte og hvor lange håndtakene er.
+    pub(super) fn pivot(&self, cam: &Camera) -> Option<(Vec3, f32)> {
+        let e = self.editor.as_ref()?;
+        let sel = e.selected();
+        if sel.is_empty() {
+            return None;
+        }
+        let p = sel.iter().map(|s| Vec3::from(s.pose.translation)).sum::<Vec3>() / sel.len() as f32;
+        Some((p, (p.distance(cam.eye) * 0.12).clamp(0.4, 4.0)))
+    }
+
+    fn ring_points(p: Vec3, len: f32) -> Vec<Vec3> {
+        (0..=32).map(|k| p + Quat::from_rotation_y(k as f32 / 32.0 * std::f32::consts::TAU) * Vec3::X * len * 0.8).collect()
+    }
+
+    /// Håndtaket under pekeren, om noe.
+    fn handle_at(&self, at: (f32, f32), cam: &Camera) -> Option<Handle> {
+        let (p, len) = self.pivot(cam)?;
+        let m = cam.point(at);
+        let near = |a: Vec3, b: Vec3| cam.distance(m, a, b);
+        let mut best: Option<(f32, Handle)> = None;
+        for (k, (axis, _)) in AXES.iter().enumerate() {
+            if let Some(d) = near(p, p + *axis * len) {
+                if d < GRAB && best.is_none_or(|(b, _)| d < b) {
+                    best = Some((d, Handle::Axis(k)));
+                }
+            }
+        }
+        for w in Self::ring_points(p, len).windows(2) {
+            if let Some(d) = near(w[0], w[1]) {
+                if d < GRAB && best.is_none_or(|(b, _)| d < b) {
+                    best = Some((d, Handle::Ring));
+                }
+            }
+        }
+        best.map(|(_, h)| h)
+    }
+
+    /// Dra det valgte med håndtaket fra forrige punkt til `to`.
+    fn drag_to(&mut self, to: (f32, f32), cam: &Camera) -> bool {
+        let (Some((handle, from)), Some((p, _))) = (self.ui.drag, self.pivot(cam)) else {
+            return false;
+        };
+        // Et trykk blir først et drag når musa har gått et stykke.
+        if let Some(at) = self.ui.pressed {
+            if (cam.point(to) - cam.point(at)).length() < SLACK {
+                return false;
+            }
+            self.ui.pressed = None;
+        }
+        self.ui.drag = Some((handle, to));
+        let on_plane = |at: (f32, f32)| {
+            let (o, d) = cam.ray(at);
+            (d.y.abs() > 1e-4).then(|| o + d * ((p.y - o.y) / d.y)).filter(|_| ((p.y - o.y) / d.y) > 0.0)
+        };
+        match handle {
+            Handle::Route(k) => {
+                let (Some(r), Some(at)) = (self.route_npc(), self.ground_at(Some(to), cam)) else {
+                    return false;
+                };
+                let at = if self.ui.snap { Vec3::new(ghost::snap(at.x, ghost::GRID), at.y, ghost::snap(at.z, ghost::GRID)) } else { at };
+                self.editor_mut().route_move(&r, k, at);
+            }
+            Handle::Ground => {
+                let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
+                    return false;
+                };
+                self.translate_snapped(p, Vec3::new(b.x - a.x, 0.0, b.z - a.z));
+            }
+            Handle::Lift => {
+                let (Some(a), Some(b)) = (cam.on_screen(p), cam.on_screen(p + Vec3::Y)) else {
+                    return false;
+                };
+                let s = b - a;
+                let moved = (cam.point(to) - cam.point(from)).dot(s) / s.length_squared().max(1e-9);
+                self.translate_snapped(p, Vec3::Y * moved);
+            }
+            Handle::Turn => {
+                // En bildebredde bortover er en hel runde; mot høyre dreier
+                // med klokka sett ovenfra.
+                let turn = -(to.0 - from.0) * std::f32::consts::TAU;
+                self.rotate_snapped(turn);
+            }
+            Handle::Axis(k) => {
+                let axis = AXES[k].0;
+                let (Some(a), Some(b)) = (cam.on_screen(p), cam.on_screen(p + axis)) else {
+                    return false;
+                };
+                let s = b - a;
+                let moved = (cam.point(to) - cam.point(from)).dot(s) / s.length_squared().max(1e-9);
+                self.translate_snapped(p, axis * moved);
+            }
+            Handle::Ring => {
+                // Vinkelen rundt midten i planet der det valgte står.
+                let (Some(a), Some(b)) = (on_plane(from), on_plane(to)) else {
+                    return false;
+                };
+                let angle = |v: Vec3| (-(v.z - p.z)).atan2(v.x - p.x);
+                let mut turn = angle(b) - angle(a);
+                if turn > std::f32::consts::PI {
+                    turn -= std::f32::consts::TAU;
+                } else if turn < -std::f32::consts::PI {
+                    turn += std::f32::consts::TAU;
+                }
+                self.rotate_snapped(turn);
+            }
+        }
+        true
+    }
+
+    /// Flytt det valgte `delta`; med festet på samles flyttingen til midten
+    /// `p` havner på rutenettet (bare langs aksene som flyttes).
+    fn translate_snapped(&mut self, p: Vec3, delta: Vec3) {
+        if !self.ui.snap {
+            self.editor_mut().translate(delta);
+            return;
+        }
+        self.ui.carry += delta;
+        let target = p + self.ui.carry;
+        let mut step = Vec3::ZERO;
+        for k in 0..3 {
+            if self.ui.carry[k] != 0.0 {
+                step[k] = ghost::snap(target[k], ghost::GRID) - p[k];
+            }
+        }
+        if step != Vec3::ZERO {
+            self.ui.carry -= step;
+            self.editor_mut().translate(step);
+        }
+    }
+
+    /// Drei det valgte `turn`; med festet på i hele steg på 15°.
+    fn rotate_snapped(&mut self, turn: f32) {
+        if !self.ui.snap {
+            self.editor_mut().rotate(turn);
+            return;
+        }
+        self.ui.carry_turn += turn;
+        let n = (self.ui.carry_turn / ghost::ANGLE).round();
+        if n != 0.0 {
+            self.ui.carry_turn -= n * ghost::ANGLE;
+            self.editor_mut().rotate(n * ghost::ANGLE);
+        }
+    }
+
+    /// Markeringene: boksene rundt det valgte (gule) og det som bryter en
+    /// regel (røde), håndtakene, og linjeutkastet.
+    pub(super) fn lines(&self, cam: &Camera) -> Vec<(Vec3, Vec3, Vec3)> {
+        let Some(e) = &self.editor else { return vec![] };
+        let mut out = vec![];
+        let mut seen = std::collections::HashSet::new();
+        for b in e.breaches() {
+            if seen.insert(b.r.clone()) {
+                if let Some((t, c, h)) = e.box_of(&b.r) {
+                    box_lines(&t, c, h, BREACH, &mut out);
+                }
+            }
+        }
+        for s in e.selected() {
+            box_lines(&s.pose, s.center, s.half * 1.01, SELECTED, &mut out);
+        }
+        if let Some((p, len)) = self.pivot(cam) {
+            for (axis, color) in AXES {
+                out.push((p, p + axis * len, color));
+            }
+            for w in Self::ring_points(p, len).windows(2) {
+                out.push((w[0], w[1], RING));
+            }
+        }
+        if let Some((model, _, pose, bad)) = &self.ui.ghost {
+            if let Some((lo, hi)) = e.scene().bounds(model) {
+                box_lines(pose, (lo + hi) * 0.5, (hi - lo) * 0.5, if bad.is_empty() { GHOST_OK } else { GHOST_BAD }, &mut out);
+            }
+        }
+        for w in self.ui.draft.windows(2) {
+            out.push((w[0] + Vec3::Y * 0.05, w[1] + Vec3::Y * 0.05, DRAFT));
+        }
+        for p in &self.ui.draft {
+            out.push((*p, *p + Vec3::Y * 1.5, DRAFT));
+        }
+        self.mark_lines(cam, &mut out);
+        out
+    }
 
     /// Det redigeringen har endret, til bildet: de faste instansene som ikke
     /// lenger står slik (skjules), og instansene som står et nytt sted.
-    pub(super) fn edit_instances(&self) -> (Vec<(&'static str, usize)>, Vec<ModelInstance>) {
-        let (Some(e), Some(d)) = (&self.edit, &self.edit_data) else {
+    pub(super) fn instances(&self) -> (Vec<(&'static str, usize)>, Vec<ModelInstance>) {
+        let (Some(e), Some(d)) = (&self.editor, &self.data) else {
             return (vec![], vec![]);
         };
         let mut base: HashMap<(String, [i32; 12]), Vec<(&'static str, usize)>> = HashMap::new();
@@ -701,7 +679,7 @@ impl Session {
             }
         }
         // Fantomet, med den grønne eller røde boksen rundt (`edit_lines`).
-        if let Some((model, _, pose, _)) = &self.edit_ui.ghost {
+        if let Some((model, _, pose, _)) = &self.ui.ghost {
             if scene.bounds(model).is_some() {
                 shown.push(ModelInstance { model: crate::domain::world::layout::intern(model), transform: *pose, skin: None, flash: 0.0, tint: None, look: None });
             }

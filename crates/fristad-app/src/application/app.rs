@@ -110,7 +110,7 @@ impl<R: Renderer, P: Physics> App<R, P> {
     pub fn new(prepared: Prepared, renderer: R, mut physics: P) -> Self {
         let mut session = Session::new(&prepared.world, &mut physics, &prepared.rigs);
         let lazy = lazy_models(&prepared);
-        session.edit_data = prepared.edit;
+        session.edit.data = prepared.edit;
         session.level = prepared.level.map(|s| super::level_editing::LevelEditing::new(s, &prepared.world, &prepared.infos));
         let levels = prepared
             .world

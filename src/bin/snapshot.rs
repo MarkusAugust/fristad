@@ -161,7 +161,7 @@ fn main() {
         use fristad::ports::driving::LevelCommand;
         let o = serde_json::from_str(&op).unwrap_or_else(|e| panic!("--level-op {op}: {e}"));
         if !app.command(Command::Level(LevelCommand::Op(o))) {
-            eprintln!("--level-op {op}: {:?}", app.session.level_error);
+            eprintln!("--level-op {op}: {:?}", app.session.level_editing().and_then(|l| l.error.as_ref()));
         }
     }
     if flag("--game-light") {

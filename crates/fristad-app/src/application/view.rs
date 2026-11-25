@@ -50,7 +50,7 @@ impl Session {
         let lamp = ((t - 0.35) / 0.5).clamp(0.0, 1.0).max(overcast * 0.5 * (1.0 - t)) * 0.6 + ((t - 0.35) / 0.5).clamp(0.0, 1.0) * 0.4;
         let eye_now = self.eye();
         // Mens du redigerer, står lysene der redigeringen har satt dem.
-        let base = self.edit.as_ref().map(|e| &e.scene().lights).unwrap_or(&self.lights);
+        let base = self.edit.editor.as_ref().map(|e| &e.scene().lights).unwrap_or(&self.lights);
         let mut lights: Vec<Light> = base
             .iter()
             .enumerate()
@@ -187,7 +187,7 @@ impl Session {
         if self.film.is_none() {
             instances.extend(self.combat.instances(eye, vyaw, vpitch, in_crypt, &mut skins));
         }
-        let (hidden, edited) = self.edit_instances();
+        let (hidden, edited) = self.edit.instances();
         instances.extend(edited);
         Frame {
             view: Mat4::look_to_rh(eye, view_dir, self.film.map_or(Vec3::Y, |s| glam::Quat::from_axis_angle(view_dir.normalize(), -s.roll) * Vec3::Y)),
@@ -226,7 +226,7 @@ impl Session {
             smoke,
             instances,
             hidden,
-            lines: self.edit_lines(),
+            lines: self.edit.lines(&self.camera()),
             skins,
             hurt: self.combat.hurt,
             debug: self.debug,
@@ -272,14 +272,14 @@ impl Session {
     /// Krypten slik den står: mens du redigerer, med merkene der
     /// redigeringen har flyttet dem, så spakene, portene og lemmene følger.
     fn live_crypt(&self) -> &crate::domain::world::crypt::Crypt {
-        self.edit.as_ref().map(|e| e.built_crypt()).unwrap_or(&self.crypt)
+        self.edit.editor.as_ref().map(|e| e.built_crypt()).unwrap_or(&self.crypt)
     }
 
     /// Det du kan bruke og hvor det står. Mens du redigerer, står det der
     /// redigeringen har satt det, så vinda og bøtta følger brønnen du drar
     /// (eieren 12. oktober), og lokket kista.
     fn target_poses(&self) -> Vec<(Use, Affine3A)> {
-        match &self.edit {
+        match &self.edit.editor {
             Some(e) => e.scene().targets.iter().map(|t| (t.what, t.pose)).collect(),
             None => self.targets.iter().map(|t| (t.target.what, t.target.pose)).collect(),
         }
