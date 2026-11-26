@@ -64,10 +64,8 @@ function showDoc(box) {
     <div class="row">
       ${field(
         "Nummer",
-        `<select id="d-level" class="lt-select">${options(
-          [...Array.from({ length: 10 }, (_, k) => [k + 1, String(k + 1)]), ...(typeof h.level === "string" ? [[h.level, h.level]] : [])],
-          h.level,
-        )}</select>`,
+        // Et tall fra 1 (uten øvre grense), eller et navn som «test».
+        `<input id="d-level" class="lt-input" value="${esc(String(h.level ?? ""))}" style="width:5em">`,
       )}
       ${field("Tema", `<select id="d-theme" class="lt-select">${options([["", "Som modulene"], ...palette.themes.map((t) => [t, THEME_NAMES[t] || t])], h.theme)}</select>`)}
     </div>

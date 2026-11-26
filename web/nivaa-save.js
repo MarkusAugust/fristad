@@ -132,7 +132,7 @@ export function openDialog() {
     <h2 class="lt-heading" data-size="s">Nytt nivå</h2>
     <div class="row" style="align-items:flex-end">
       ${field("Navnet", `<input id="new-name" class="lt-input" value="Nytt nivå">`).replace('class="field"', 'class="field" style="flex:1"')}
-      ${field("Nivå", `<select id="new-n" class="lt-select">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => `<option>${n}</option>`).join("")}</select>`)}
+      ${field("Nivå", `<input id="new-n" class="lt-input" type="number" min="1" step="1" value="1" style="width:5em">`)}
       ${field(
         "Temaet",
         `<select id="new-theme" class="lt-select">${(palette.themes.length ? palette.themes : ["grav"]).map((t) => `<option value="${t}">${THEME_NAMES[t] || t}</option>`).join("")}</select>`,
@@ -175,7 +175,7 @@ export function openDialog() {
     close();
   };
   card.querySelector("#new-make").onclick = () => {
-    const n = Number(card.querySelector("#new-n").value);
+    const n = Math.max(1, Math.floor(Number(card.querySelector("#new-n").value)) || 1);
     openText(level_blank(card.querySelector("#new-name").value || `Nivå ${n}`, n, card.querySelector("#new-theme").value), `Nytt nivå ${n}.`);
     close();
   };

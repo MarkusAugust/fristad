@@ -372,6 +372,9 @@ fn et_klart_nivaa_erstatter_det_gamle() {
     let picked = ready_docs([draft.clone(), ready.clone(), test].into_iter());
     assert_eq!(picked.len(), 1, "bare det klare med nummer");
     assert_eq!(picked[0].0, 1);
+    // Ingen øvre grense (eieren 26. november): et klart nivå 11 er med, og 0 er ikke et nivå.
+    let deep = |n: u32| LevelDoc { level: LevelId::N(n), ..ready.clone() };
+    assert_eq!(ready_docs([deep(11), deep(0)].into_iter()).iter().map(|(n, _)| *n).collect::<Vec<_>>(), [11], "nivå 11 er et nivå");
     // Verden bygd med det: nivå 1 er det nye, de andre står.
     let mut data = crate::adapters::gltf::Embedded.world_data();
     let old: Vec<u32> = data.levels.iter().map(|(n, _)| *n).collect();

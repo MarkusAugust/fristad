@@ -39,13 +39,15 @@ fn cells(doc: &LevelDoc, kit: &KitDef) -> Vec<C> {
 /// og flertallet.
 pub const NEEDED: [(&str, &str, &str); 4] = [("start", "et startsted", "startsteder"), ("up", "døra opp", "dører opp"), ("rest", "et hvilested", "hvilesteder"), ("down", "trappa ned", "trapper ned")];
 
-/// Startstedet, døra opp, hvilestedet og trappa ned: nøyaktig én av hver
-/// (det dypeste nivået, `last`, har ingen trapp ned).
-pub fn needed(file: &LevelFile, last: bool) -> Vec<Issue> {
+/// Startstedet, døra opp, hvilestedet og trappa ned: nøyaktig én av hver.
+/// Krypten har ingen øvre grense (eieren 26. november), så regelen vet ikke
+/// hvilket nivå som er det dypeste: der står advarselen om trappa ned, og
+/// den stopper ikke «klar».
+pub fn needed(file: &LevelFile) -> Vec<Issue> {
     let mut out = Vec::new();
     for (kind, name, many) in NEEDED {
         let n = file.marks.iter().filter(|m| m.kind == kind).count();
-        if n != 1 && !(kind == "down" && last) {
+        if n != 1 {
             let msg = if n == 0 { format!("Nivået mangler {name}") } else { format!("Nivået har {n} {many} (skal ha én)") };
             out.push(Issue::warn("innhold", None, msg));
         }

@@ -141,11 +141,11 @@ pub fn world_data() -> Data {
 }
 
 /// Nivådokumentene som skal inn i spillet: de som er merket «klar» og har
-/// et nummer (1–10), som erstatter det gamle nivået med samme nummer
+/// et nummer (fra 1, uten øvre grense), som erstatter det gamle nivået med samme nummer
 /// (`Data::compose_levels`). Utkastene og prøvenivåene blir stående utenfor.
 pub fn ready_docs(docs: impl Iterator<Item = LevelDoc>) -> Vec<(u32, LevelDoc)> {
     docs.filter_map(|d| {
-        let n = d.level.number().filter(|n| (1..=10).contains(n))?;
+        let n = d.level.number().filter(|n| *n >= 1)?;
         d.ready().then_some((n, d))
     })
     .collect()

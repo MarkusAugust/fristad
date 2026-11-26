@@ -506,7 +506,7 @@ impl Compiler {
         report.issues.append(&mut issues);
         file.rooms = rooms;
         // Det et nivå må ha.
-        report.issues.extend(check::needed(&file, doc.level.number() == Some(10)));
+        report.issues.extend(check::needed(&file));
         (file, report)
     }
 }

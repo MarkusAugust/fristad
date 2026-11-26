@@ -33,7 +33,7 @@ pub fn level_doc_source(name: &str) -> String {
 #[wasm_bindgen]
 pub fn level_blank(name: &str, number: u32, theme: &str) -> String {
     let kit = crate::adapters::data::kit();
-    crate::adapters::data::level_doc_json(&LevelEditor::blank(name, number.clamp(1, 10), theme, &kit))
+    crate::adapters::data::level_doc_json(&LevelEditor::blank(name, number.max(1), theme, &kit))
 }
 
 /// Paletten: modulene med cellene og åpningene, steinene, innholdet,

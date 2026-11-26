@@ -38,7 +38,7 @@ Detaljene står i `docs/oppslag/verden.md`.
 ## Spillet
 
 - **Navnene kommer fra kanon og LO-TEK.** Komponentene heter det de heter i LO-TEK (Button, ikke knapp), og fiendene, nivåene og stedene heter det kanon sier. Rundt boka er spillet norsk; bøkene er LO-TEK-dokumentasjonen slik den er, på engelsk.
-- **Krypten er ti faste, håndlagde nivåer**, like hver gang: ingen generator og intet frø. Den er bare så dyp som nivåene som finnes.
+- **Krypten er faste, håndlagde nivåer**, like hver gang: ingen generator og intet frø. Den er bare så dyp som nivåene som finnes, og det er ingen øvre grense på hvor mange (eieren 26. november; de gamle var ti).
 - **Lyskilder skal bety noe** (eieren 13. oktober): nede er det nesten ikke noe grunnlys, og lyset går ikke gjennom murene.
 - **Eieren bygger nivåer med moduler, ikke biter** (19. oktober), og det finnes ett sett moduler der steinen velges i redigeringen (20. oktober).
 - **Figurene og de nye fiendene lages fra TRELLIS** med `folk3d.py`, `mob3d.py` og `item3d.py`. Formen og teksturen brukes som de er; den egne figurmotoren er forkastet og slettet.
