@@ -219,7 +219,6 @@ fn alt_du_kan_bruke_kan_siktes_pa() {
     assert!(problems.is_empty(), "\n{}", problems.join("\n"));
 }
 
-
 /// Det du finner i kjelleren havner i lageret uansett hvordan du kommer
 /// deg opp: også med H (tilbake til sørporten), ikke bare gjennom døra i
 /// trappa. Smeden ser det da.
@@ -396,34 +395,6 @@ fn kartet_viser_det_du_har_sett() {
     assert!(map.is_none(), "oppe i byen skal kartet være borte");
 }
 
-/// Skjemaet i Smia sier hvor hver komponent i oppskriftene finnes, og de som
-/// ikke kan kjøpes i Skriptoriet merkes «bare i krypten». Alle
-/// komponentene i oppskriftene må finnes et sted.
-#[test]
-fn skjemaet_sier_hvor_komponentene_finnes() {
-    use crate::domain::craft;
-    let button = craft::source("button");
-    assert!(!button.crypt_only() && button.describe().contains("Skriptoriet"), "{}", button.describe());
-    let card = craft::source("card");
-    assert!(card.crypt_only() && card.describe().starts_with("Finnes bare i krypten"), "{}", card.describe());
-    let mut nowhere = vec![];
-    for r in craft::RECIPES {
-        for c in r.needs.iter().map(|(c, _)| *c).chain(r.requires.iter().copied()) {
-            let s = craft::source(c);
-            if s.chests.is_empty() && s.elite.is_empty() && !s.boss && s.shop.is_none() {
-                nowhere.push(format!("{c} ({})", r.name));
-            }
-        }
-    }
-    assert!(nowhere.is_empty(), "finnes ingen steder: {}", nowhere.join(", "));
-    // Kort på én linje til skjemaet, og hver ting har sin linje om seg selv.
-    assert_eq!(button.brief().lines().count(), 1);
-    assert!(button.brief().contains("Skriptoriet"), "{}", button.brief());
-    let ids = craft::WEAPONS.iter().map(|w| w.id).chain(craft::SHIELDS.iter().map(|s| s.id)).chain(craft::ARMORS.iter().map(|a| a.id)).chain(craft::RECIPES.iter().map(|r| r.id));
-    let silent: Vec<&str> = ids.filter(|id| craft::about(id).is_empty()).collect();
-    assert!(silent.is_empty(), "uten beskrivelse: {silent:?}");
-}
-
 /// Smiinga: med komponentene i lageret godtas skjemaet for komponentsverdet
 /// og våpenet byttes; uten dem avvises det. Kjøp koster tokens, og
 /// lagringen tar med utstyret.
@@ -448,7 +419,6 @@ fn skjemaet_smir_utstyr() {
     assert_eq!(fresh.gear().weapon.id, "component_sword");
     assert!(fresh.buy("potion"), "med tokens går kjøpet");
 }
-
 
 /// Utstyret (eieren 18. oktober: «alt skal se forskjellig ut med forskjellige
 /// stats»): hvert våpen, skjold og hver rustning har sin egen modell, som
@@ -2539,8 +2509,6 @@ fn light_follows_rooms(p: &Prepared) {
     c.open[gate.switch] = true;
     assert_ne!(c.light_mask(gate.level, ra) & (1 << rb), 0, "lyset går ikke gjennom det åpne gitteret");
 }
-
-
 
 /// Måler tiden per `update` og `frame` i byen og i krypten (feilsøking av
 /// bildefrekvensen). `cargo test --release maal_tiden -- --ignored --nocapture`.

@@ -3,7 +3,7 @@
 //! `docs/nivaaredigering.md` del 27): hver modul i hver stein har ett gulv
 //! per rom, og faklene står under hvelvet.
 
-use crate::adapters::data::kit;
+use crate::data::kit;
 use crate::domain::world::crypt::compose::{self, check, modules};
 use crate::domain::world::crypt::kit::PieceKind;
 

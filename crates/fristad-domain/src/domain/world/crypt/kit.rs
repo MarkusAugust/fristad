@@ -44,6 +44,24 @@ pub struct KitFile {
 }
 
 impl KitDef {
+    /// Byggesettet satt sammen av manifestene, modulene (`tema/navn` og
+    /// modulen; en modul uten id får navnet) og steinene. Adapteren og
+    /// testene i kjernen leser filene hver for seg og bygger det her.
+    pub fn assemble(files: impl IntoIterator<Item = KitFile>, modules: impl IntoIterator<Item = (String, super::doc::ModuleDef)>, stones: super::stone::StoneFile) -> Self {
+        let mut kit = Self::default();
+        for f in files {
+            kit.add(f);
+        }
+        for (name, mut m) in modules {
+            if m.id.is_empty() {
+                m.id = name;
+            }
+            kit.modules.push(m);
+        }
+        kit.stones = stones;
+        kit
+    }
+
     /// Legger til et manifest. En sammensatt bit (`footprint`) får i tillegg
     /// én delbit per celle (`<id>#<k>`, `part_of`), som kompilatoren setter ut
     /// i stedet for den (`compose::expand`): midtcella bærer modellen,

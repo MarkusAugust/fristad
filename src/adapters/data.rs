@@ -33,29 +33,16 @@ include!(concat!(env!("OUT_DIR"), "/level_docs.rs"));
 
 /// Byggesettet for nivåredigeringen: alle manifestene slått sammen.
 pub fn kit() -> KitDef {
-    let mut kit = KitDef::default();
-    for (theme, json) in KIT_FILES {
-        match serde_json::from_str::<KitFile>(json) {
-            Ok(f) => kit.add(f),
-            Err(e) => log::warn!("assets/models/crypt/kit/{theme}.json: {e}"),
+    let files = KIT_FILES.iter().filter_map(|(theme, json)| serde_json::from_str::<KitFile>(json).map_err(|e| log::warn!("assets/models/crypt/kit/{theme}.json: {e}")).ok());
+    let modules = MODULE_FILES.iter().filter_map(|(name, json)| match serde_json::from_str::<crate::domain::world::crypt::doc::ModuleDef>(json) {
+        Ok(m) => Some((name.to_string(), m)),
+        Err(e) => {
+            log::warn!("assets/levels/moduler/{name}.json: {e}");
+            None
         }
-    }
-    for (name, json) in MODULE_FILES {
-        match serde_json::from_str::<crate::domain::world::crypt::doc::ModuleDef>(json) {
-            Ok(mut m) => {
-                if m.id.is_empty() {
-                    m.id = name.to_string();
-                }
-                kit.modules.push(m);
-            }
-            Err(e) => log::warn!("assets/levels/moduler/{name}.json: {e}"),
-        }
-    }
-    match serde_json::from_str(STONES_FILE) {
-        Ok(s) => kit.stones = s,
-        Err(e) => log::warn!("assets/levels/steiner.json: {e}"),
-    }
-    kit
+    });
+    let stones = serde_json::from_str(STONES_FILE).map_err(|e| log::warn!("assets/levels/steiner.json: {e}")).unwrap_or_default();
+    KitDef::assemble(files, modules, stones)
 }
 
 /// Navnene på nivådokumentene som finnes (`01`, `test`), `brett`
