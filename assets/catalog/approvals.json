@@ -4730,9 +4730,9 @@
   },
   "mek_gruvestiver": {
    "verdict": "godkjent",
-   "date": "2026-10-26",
+   "date": "2026-11-26",
    "why": "",
-   "seen": "35ff0784403d",
+   "seen": "8fa9f59e2732",
    "before": {
     "verdict": "usikker",
     "date": "2026-10-20",
@@ -4756,9 +4756,9 @@
   },
   "mek_malmvogn": {
    "verdict": "godkjent",
-   "date": "2026-10-20",
+   "date": "2026-11-26",
    "why": "",
-   "seen": "74a1fea7db84",
+   "seen": "cb8080a011cb",
    "before": {
     "verdict": "underkjent",
     "date": "2026-10-20",
@@ -4769,10 +4769,15 @@
    ]
   },
   "mek_portgitter": {
-   "verdict": "usikker",
-   "date": "2026-10-20",
-   "why": "skal spaken være rett ved siden av? da trenger ikke spiller lete etter den eller utforske nivået",
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
    "seen": "39695e41422c",
+   "before": {
+    "verdict": "usikker",
+    "date": "2026-10-20",
+    "why": "skal spaken være rett ved siden av? da trenger ikke spiller lete etter den eller utforske nivået"
+   },
    "history": [
     "skal spaken være rett ved siden av? da trenger ikke spiller lete etter den eller utforske nivået"
    ]
@@ -4793,11 +4798,12 @@
   },
   "mek_sarkofag": {
    "verdict": "underkjent",
-   "date": "2026-10-20",
-   "why": "denne må ha en egen 3d modell med tekstur, så det må promptes frem.og vi trenger minst to varianter av den",
+   "date": "2026-11-26",
+   "why": "teksturen er helt feil",
    "seen": "b9fadd84c349",
    "history": [
-    "denne må ha en egen 3d modell med tekstur, så det må promptes frem.og vi trenger minst to varianter av den"
+    "denne må ha en egen 3d modell med tekstur, så det må promptes frem.og vi trenger minst to varianter av den",
+    "teksturen er helt feil"
    ]
   },
   "mek_snarvei": {
@@ -4808,11 +4814,12 @@
   },
   "mek_statue": {
    "verdict": "underkjent",
-   "date": "2026-10-20",
-   "why": "en statue av stein?",
+   "date": "2026-11-26",
+   "why": "en statue av stein? det må være en rustning, set of armor",
    "seen": "091786ca557f",
    "history": [
-    "en statue av stein?"
+    "en statue av stein?",
+    "en statue av stein? det må være en rustning, set of armor"
    ]
   },
   "mek_trone": {
@@ -4916,6 +4923,90 @@
    "date": "2026-10-20",
    "why": "",
    "seen": "cbc2710f7beb"
+  },
+  "mek_trykkplate": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "904a0f0baf9c"
+  },
+  "mek_sprekk": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "ae8561cb4dd5"
+  },
+  "mek_hvilested": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "6824a09cc6ac"
+  },
+  "mek_lappepult": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "bf1bf62a6ef4"
+  },
+  "mek_styrke": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "6b661810cd67"
+  },
+  "mek_dor_opp": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "65bfeac7e764"
+  },
+  "mek_trapp_ned": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "902b5c438d5f"
+  },
+  "mek_stige": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "b31a2f4b4cd6"
+  },
+  "mek_fallem": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "c03c046c21c2"
+  },
+  "mek_vindebro": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "88a931fa4584"
+  },
+  "mek_vann": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "e3915bddd869"
+  },
+  "mek_heis": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "2caa421b519a"
+  },
+  "mek_gruvelampe": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "ffb0ec170656"
+  },
+  "mek_skinner": {
+   "verdict": "godkjent",
+   "date": "2026-11-26",
+   "why": "",
+   "seen": "41474749f273"
   }
  }
 }
