@@ -9,6 +9,10 @@
 //! - `fristad-ports`: kjernen og `glam`.
 //! - `fristad-app`: kjernen, portene, `glam` og `log`.
 //! - Hovedpakken (adapterne og vertene) får bruke alt.
+//!
+//! Reglene gjelder kildekoden i `src/` i hver pakke. Testene i
+//! `crates/fristad-domain/tests/` leser byggesettet fra `assets/` og har
+//! `serde_json` som `dev-dependency`; kjernen selv har ingen av delene.
 
 use std::path::{Path, PathBuf};
 
@@ -156,7 +160,7 @@ const TOO_LONG: &[(&str, usize)] = &[
     ("crates/fristad-domain/src/domain/geometry.rs", 802),
     ("crates/fristad-domain/src/domain/mobs.rs", 887),
     ("src/edit_tests.rs", 1002),
-    ("src/tests.rs", 3619),
+    ("src/tests.rs", 3587),
 ];
 
 /// Filene som hadde linjer over `MAX_WIDTH` da grensen kom (25. november),
@@ -198,8 +202,6 @@ const TOO_WIDE: &[(&str, usize)] = &[
     ("src/adapters/wire.rs", 6),
     ("src/bin/snapshot.rs", 4),
     ("src/crypt_tests.rs", 3),
-    ("src/level_doc_tests.rs", 3),
-    ("src/mechanism_tests.rs", 4),
     ("src/tests.rs", 8),
 ];
 

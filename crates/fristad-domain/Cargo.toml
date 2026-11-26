@@ -14,3 +14,8 @@ glam = { version = "0.30", features = ["bytemuck", "serde"] }
 bytemuck = { version = "1", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 log = "0.4"
+
+# Bare testene i `tests/` (de leser byggesettet og nivådokumentene fra
+# `assets/`); kjernen selv har ikke serde_json.
+[dev-dependencies]
+serde_json = "1"
