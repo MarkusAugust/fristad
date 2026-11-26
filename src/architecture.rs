@@ -157,7 +157,6 @@ const TOO_LONG: &[(&str, usize)] = &[
     ("crates/fristad-domain/src/domain/mobs.rs", 887),
     ("src/edit_tests.rs", 1002),
     ("src/tests.rs", 3619),
-    ("web/editor.js", 1035),
 ];
 
 /// Filene som hadde linjer over `MAX_WIDTH` da grensen kom (25. november),
@@ -202,7 +201,6 @@ const TOO_WIDE: &[(&str, usize)] = &[
     ("src/level_doc_tests.rs", 3),
     ("src/mechanism_tests.rs", 4),
     ("src/tests.rs", 8),
-    ("web/editor.js", 9),
 ];
 
 /// Kildefilene reglene gjelder: Rust i `crates/`, `src/` og `build.rs`, og
