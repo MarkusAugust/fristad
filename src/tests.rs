@@ -735,7 +735,7 @@ impl crate::ports::Renderer for Counting {
     }
 }
 
-/// Økta ber om kryptnivåene før du går ned (`Event::FetchLevel`): det
+/// Økta ber om kryptnivåene før du går ned (`Fetch::Level`): det
 /// første oppe i byen, og nivåene rundt deg nede. Rendereren får bitene
 /// med `add_level` og slipper nivåer du har forlatt.
 #[test]
@@ -752,11 +752,10 @@ fn kryptnivaaene_hentes_nivaa_for_nivaa() {
     assert!(levels.len() >= 3);
     let mut app = App::new(prepared, Counting::default(), RapierPhysics::new());
     let asked = |app: &mut App<Counting, RapierPhysics>| -> Vec<u32> {
-        let mut out = vec![];
         for _ in 0..3 {
-            out.extend(app.tick(1.0 / 30.0).into_iter().filter_map(|e| if let Event::FetchLevel(n) = e { Some(n) } else { None }));
+            app.tick(1.0 / 30.0);
         }
-        out
+        app.fetches().into_iter().filter_map(|f| if let crate::ports::driving::Fetch::Level(n) = f { Some(n) } else { None }).collect()
     };
     let load = |app: &mut App<Counting, RapierPhysics>, n: u32| {
         let models: Vec<_> = level_files(n).filter_map(|(name, p)| crate::adapters::gltf::load(name, &[("model.glb", &read(p))], -1.0, 0.0).ok()).collect();

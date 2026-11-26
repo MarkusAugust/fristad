@@ -31,10 +31,24 @@ import bpy  # noqa: E402
 from mathutils import Vector  # noqa: E402
 from common import armature, bake_textured, clear, pack_weighted  # noqa: E402
 import folk_motion  # noqa: E402
-from townsfolk import FOLK, bones  # noqa: E402
 
-# Trubaduren (glb fra TRELLIS kommer fra eieren, `docs/prompter/trellis-folk.md`).
-FOLK = {**FOLK, "troubadour": 1.78}
+# Høyden (m) per innbygger; navnet på bildet og glb-fila er nøkkelen.
+FOLK = {
+    "smith": 1.82,
+    "clerk": 1.74,
+    "apothecary": 1.72,
+    "innkeeper": 1.66,
+    "gorvek": 1.9,
+    "farmer": 1.76,
+    "maid": 1.6,
+    "guard": 1.84,
+    "merchant": 1.72,
+    "fishwife": 1.62,
+    "boy": 1.36,
+    "washerwoman": 1.6,
+    "pilgrim": 1.74,
+    "troubadour": 1.78,
+}
 
 SRC = "assets/textures/people/3d"
 REF = "assets/textures/people/ref"
@@ -105,6 +119,32 @@ FINGERS = {"troubadour": dict(sides=("L",), knuckle=0.145, mid=0.185, thumb=0.04
 LUTE = {
     "troubadour": dict(face=(0.95, -0.2, 0.3), neck=(0.3, 0.9, 0.3), at=(0.0, -0.09, 0.19), strum=(0.20, -0.07, 0.10)),
 }
+
+
+def bones(J):
+    """Spillets 18 bein (samme navn og rekkefølge som `folk_motion` venter)."""
+    T = lambda k: tuple(J[k])  # noqa: E731
+    out = [
+        ("root", (0, 0, 0), (0, 0, 0.1), None),
+        ("hips", T("pelvis"), T("spine03"), "root"),
+        ("spine", T("spine03"), T("spine01"), "hips"),
+        ("chest", T("spine01"), T("neck"), "spine"),
+        ("neck", T("neck"), T("head"), "chest"),
+        ("head", T("head"), T("top"), "neck"),
+    ]
+    for s in ("L", "R"):
+        out += [
+            (f"upper_arm.{s}", T(f"shoulder.{s}"), T(f"elbow.{s}"), "chest"),
+            (f"forearm.{s}", T(f"elbow.{s}"), T(f"wrist.{s}"), f"upper_arm.{s}"),
+            (f"hand.{s}", T(f"wrist.{s}"), T(f"finger.{s}"), f"forearm.{s}"),
+        ]
+    for s in ("L", "R"):
+        out += [
+            (f"thigh.{s}", T(f"hip.{s}"), T(f"knee.{s}"), "hips"),
+            (f"shin.{s}", T(f"knee.{s}"), T(f"ankle.{s}"), f"thigh.{s}"),
+            (f"foot.{s}", T(f"ankle.{s}"), T(f"toe.{s}"), f"shin.{s}"),
+        ]
+    return out
 
 
 def load(name):

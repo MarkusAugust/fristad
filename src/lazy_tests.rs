@@ -6,7 +6,7 @@ use crate::adapters::gltf::{model_files, Embedded, Files};
 use crate::adapters::rapier::RapierPhysics;
 use crate::application::app::Pieces;
 use crate::application::{prepare, App, Prepared};
-use crate::ports::driving::{Event, Play};
+use crate::ports::driving::{Fetch, Play};
 use crate::ports::ModelSource;
 use crate::tests::{world, Counting};
 
@@ -91,7 +91,8 @@ fn modellene_hentes_naar_okta_trenger_dem() {
     let asked = |app: &mut App<Counting, RapierPhysics>| -> Vec<String> {
         let mut out = vec![];
         for _ in 0..3 {
-            out.extend(app.tick(1.0 / 30.0).into_iter().filter_map(|e| if let Event::FetchModels(n) = e { Some(n) } else { None }).flatten());
+            app.tick(1.0 / 30.0);
+            out.extend(app.fetches().into_iter().filter_map(|f| if let Fetch::Models(n) = f { Some(n) } else { None }).flatten());
         }
         out
     };
@@ -151,7 +152,8 @@ fn ny_fiende_i_et_nivaa_hentes_med_nivaaet() {
     let asked = |app: &mut App<Counting, RapierPhysics>| -> Vec<String> {
         let mut out = vec![];
         for _ in 0..3 {
-            out.extend(app.tick(1.0 / 30.0).into_iter().filter_map(|e| if let Event::FetchModels(n) = e { Some(n) } else { None }).flatten());
+            app.tick(1.0 / 30.0);
+            out.extend(app.fetches().into_iter().filter_map(|f| if let Fetch::Models(n) = f { Some(n) } else { None }).flatten());
         }
         out
     };

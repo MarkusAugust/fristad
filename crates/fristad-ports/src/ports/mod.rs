@@ -240,7 +240,7 @@ pub trait ModelSource {
     /// kryptnivåene, og byens modeller som ikke trengs til første bilde):
     /// monteringen setter dem ut etter målene, kolliderne og skjelettet her,
     /// og rendereren får dem med `Renderer::add_models` når økta ber om dem
-    /// (`Event::FetchLevel`, `Event::FetchModels`).
+    /// (`driving::Fetch`).
     fn deferred(&self) -> Vec<crate::domain::model::Later> {
         vec![]
     }

@@ -9,12 +9,25 @@
 use crate::adapters::gltf::model_files;
 use crate::domain::weather::Daylight;
 use crate::domain::edit::LineKind;
-use crate::ports::driving::{EditCommand, Event, GearView, Grab};
+use crate::ports::driving::{EditCommand, Event, Fetch, GearView, Grab};
 
 /// Et kort (utstyret i inventaret og galleriet i skriptoriet).
 fn gear_json(g: &GearView) -> serde_json::Value {
     use serde_json::json;
     json!({"id": g.id, "name": g.name, "slot": g.slot, "rarity": g.rarity, "special": g.special, "about": g.about, "stats": g.stats.iter().map(|(l, v, t, up)| json!({"label": l, "value": v, "text": t, "up": up})).collect::<Vec<_>>(), "equipped": g.equipped, "owned": g.owned})
+}
+
+/// Det nettlaget må hente (`engine.fetches()`): et nivå som `level`, eller
+/// modellene som `names` med filene i samme rekkefølge som `paths`.
+pub fn fetch_json(f: &Fetch) -> serde_json::Value {
+    use serde_json::json;
+    match f {
+        Fetch::Level(n) => json!({"level": n}),
+        Fetch::Models(names) => {
+            let paths: Vec<&str> = names.iter().filter_map(|n| model_files().find(|(m, _)| *m == n.as_str()).map(|(_, p)| *p)).collect();
+            json!({"names": names, "paths": paths})
+        }
+    }
 }
 
 /// Én hendelse slik nettlaget får den.
@@ -41,11 +54,6 @@ pub fn json(e: &Event) -> serde_json::Value {
         }
         Event::Weather(w) => json!({"type": "weather", "weather": w}),
         Event::Fade => json!({"type": "fade"}),
-        Event::FetchLevel(n) => json!({"type": "fetch_level", "level": n}),
-        Event::FetchModels(names) => {
-            let paths: Vec<&str> = names.iter().filter_map(|n| model_files().find(|(m, _)| *m == n.as_str()).map(|(_, p)| *p)).collect();
-            json!({"type": "fetch_models", "names": names, "paths": paths})
-        }
         Event::Warp => json!({"type": "warp"}),
         Event::Map(None) => json!({"type": "map", "map": null}),
         Event::Map(Some(m)) => json!({"type": "map", "map": {

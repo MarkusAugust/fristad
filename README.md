@@ -1,6 +1,6 @@
 # Fristad
 
-Et spill i en nordisk kjøpstad rundt 1350, i nettleseren. Under borgruinen nord for byen ligger krypten, og der nede holder de korrupte komponentene fra designsystemet [LO-TEK](https://github.com/MarkusAugust/lo-tek) til: buttons med tenner, tooltips i flokk, inputer som spytter markører, modaler med knappenever, tabellen som vokter nøkkelen, og nederst Rammeverket.
+Et spill i en nordisk kjøpstad rundt 1350, i nettleseren. Under kirkegården nord for byen ligger krypten, og der nede holder de korrupte komponentene fra designsystemet [LO-TEK](https://github.com/MarkusAugust/lo-tek) til: buttons med tenner, tooltips i flokk, inputer som spytter markører, modaler med knappenever, tabellen som vokter nøkkelen, og nederst Rammeverket.
 
 Du går inn sørporten, gjennom Storgata til torget med markedsbodene, og opp til borgen. Komponentene du vinner i krypten smis til våpen, skjold og rustning hos Smeden, der oppskriftene er LO-TEK-skjemaer, og i Skriptoriet kjøpes og byttes komponentene. Bøkene om komponentene er dokumentasjonen, og å lese dem leger sårene. Dør du, er det du bar igjen nede.
 
@@ -48,4 +48,4 @@ sh tools/build-web.sh          # nettversjonen til dist/
 python3 tools/models/mobs.py   # fiendene i Blender
 ```
 
-Se `CLAUDE.md` for detaljene og `docs/spilldesign.md` for spillet.
+Se `CLAUDE.md` for reglene, `docs/oppslag/` for detaljene og `docs/spilldesign.md` for spillet.

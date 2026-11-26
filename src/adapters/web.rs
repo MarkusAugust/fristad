@@ -101,7 +101,7 @@ pub fn start_paths() -> Vec<String> {
 
 /// Modellfilene som hentes etter start når manifestet finnes
 /// (`models/manifest.json`, `delivery::lazy`): de er ikke med i
-/// `start_paths()`s første henting, og økta ber om dem (`fetch_models`).
+/// `start_paths()`s første henting, og økta ber om dem (`fetches`).
 #[wasm_bindgen]
 pub fn lazy_paths() -> Vec<String> {
     model_files().filter(|(n, p)| crate::adapters::delivery::lazy(n, p)).map(|(_, p)| p.to_string()).collect()
@@ -217,7 +217,7 @@ impl Engine {
         self.backend.clone()
     }
 
-    /// Bitene til kryptnivå n er hentet (`fetch_level`), i samme rekkefølge
+    /// Bitene til kryptnivå n er hentet (`fetches`), i samme rekkefølge
     /// som `level_paths(n)`: modellene lastes og gis rendereren.
     pub fn add_level(&mut self, n: u32, blobs: js_sys::Array) {
         let models: Vec<crate::domain::model::Model> = crate::adapters::delivery::level_files(n)
@@ -232,7 +232,7 @@ impl Engine {
         self.app.add_level(n, &models);
     }
 
-    /// Modellene økta ba om (`fetch_models`) er hentet: `names` og filene i
+    /// Modellene økta ba om (`fetches`) er hentet: `names` og filene i
     /// samme rekkefølge (tomme hoppes over). De lastes med nettleserens tak
     /// og gis rendereren.
     pub fn add_models(&mut self, names: js_sys::Array, blobs: js_sys::Array) {
@@ -648,6 +648,17 @@ impl Engine {
     /// Om grafikkortet er borte.
     pub fn is_gpu_lost(&self) -> bool {
         self.app.renderer.is_lost()
+    }
+
+    /// Det nettlaget må hente siden sist (nivåene og modellene økta trenger
+    /// nå, `wire::fetch_json`) som JSON-liste, eller tomt når det ikke er
+    /// noe. Nettlaget svarer med `add_level` og `add_models`.
+    pub fn fetches(&mut self) -> String {
+        let fetches = self.app.fetches();
+        if fetches.is_empty() {
+            return String::new();
+        }
+        serde_json::Value::Array(fetches.iter().map(crate::adapters::wire::fetch_json).collect()).to_string()
     }
 
     /// Ett bilde. Returnerer hendelsene som JSON-liste.

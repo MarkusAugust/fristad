@@ -147,10 +147,23 @@ export function loseGpu(message) {
   toast?.show?.("Grafikkortet forsvant. Last siden på nytt for å se byen igjen.");
 }
 
-// Bitene til et kryptnivå hentes først når økta ber om nivået
-// (`fetch_level`, plan del 10a), og gis motoren med `add_level`.
+// Det motoren trenger hentet nå (`engine.fetches()`, plan del 10a): bitene
+// til et kryptnivå (`level`) eller modeller som hentes etter start
+// (`names` og `paths`). Spørres etter hvert bilde; en feil her stopper ikke
+// løkka.
+export function deliver() {
+  const wanted = engine?.fetches();
+  if (!wanted) return;
+  for (const f of JSON.parse(wanted)) {
+    const done = f.level ? fetchLevel(f.level) : fetchLazy(f.names, f.paths);
+    done.catch((err) => console.error("Hentingen feilet:", err));
+  }
+}
+
+// Bitene til et kryptnivå hentes først når økta ber om nivået, og gis
+// motoren med `add_level`.
 const levelsAsked = new Set();
-export async function fetchLevel(n) {
+async function fetchLevel(n) {
   if (levelsAsked.has(n)) return;
   levelsAsked.add(n);
   const paths = level_paths(n);
@@ -169,12 +182,12 @@ export async function fetchLevel(n) {
 
 // Byens modeller som ikke trengs til første bilde (innsiden, møblene,
 // galleriet, fiendene, utstyret du ikke har på; `lazy_paths`, plan del 10a)
-// hentes når økta ber om dem (`fetch_models`) og gis motoren med
+// hentes når økta ber om dem og gis motoren med
 // `add_models`. Verden bygges før de kommer, fra manifestet
 // (models/manifest.json, mål, kollidere og skjelett). Mangler manifestet,
 // hentes alt ved start som før.
 export let lazyManifest;
-export async function fetchLazy(names, paths) {
+async function fetchLazy(names, paths) {
   const out = new Array(paths.length);
   let next = 0;
   const worker = async () => {

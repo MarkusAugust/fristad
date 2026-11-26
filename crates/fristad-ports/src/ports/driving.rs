@@ -365,6 +365,20 @@ pub struct Mark {
     pub text: String,
 }
 
+/// Det verten må hente for at spillet skal kunne tegne det som kommer
+/// (plan del 10a). Det er levering og ikke noe som skjer i spillet, så det
+/// står ikke blant hendelsene: verten spør etter det for seg
+/// (`App::fetches`) og svarer med `add_level` og `add_models`.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Fetch {
+    /// Bitene til kryptnivå n (1 og oppover), når økta trenger nivået.
+    Level(u32),
+    /// Disse modellene (navnene): byens modeller som ikke trengs til første
+    /// bilde, når økta trenger dem (utstyret du har på straks, innsiden og
+    /// møblene når du nærmer deg, fiendene med nivået).
+    Models(Vec<String>),
+}
+
 /// Det spillet forteller verten.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Event {
@@ -402,14 +416,6 @@ pub enum Event {
     Weather(String),
     /// Skjermen går i svart og tilbake (ned i krypten og opp igjen).
     Fade,
-    /// Hent bitene til kryptnivå n (1 og oppover): nettleseren laster dem
-    /// når økta trenger nivået, og svarer med `add_level`.
-    FetchLevel(u32),
-    /// Hent disse modellene (navnene; plan del 10a): byens modeller som
-    /// ikke trengs til første bilde, når økta trenger dem (utstyret du har
-    /// på straks, innsiden og møblene når du nærmer deg, fiendene med
-    /// nivået). Nettleseren svarer med `add_models`.
-    FetchModels(Vec<String>),
     /// Du reiser gjennom portalen (hjem med H, eller tilbake): en virvel
     /// over skjermen.
     Warp,
