@@ -49,6 +49,7 @@ En ting som bryter en regel, lyser rødt med grunnen mens du flytter den. Lagre 
 
 ## Lagring
 
+- **Lokalt (eieren 26. november), den vanlige måten:** `node tools/rediger.mjs --bygg` bygger nettversjonen og viser den på http://localhost:1350 (`?edit` og `?nivaa`; uten `--bygg` vises den som er bygd sist). Der skriver Lagre (Ctrl+S) rett i filene i repoet på maskinen, uten nøkkel, gren eller zip (`LOCAL` i `web/github.js`, `/lokal/les` og `/lokal/lagre` i tjeneren, som bare lytter på maskinen og bare skriver json under `assets/layout/` og `assets/levels/`). Når du går inn i redigeringen, hentes filene slik de står i repoet nå, så det du lagret sist, er med uten nytt bygg. Claude kjører kontrollene på arbeidskopien, og så pushes det samlet. Punktene under gjelder redigeringen på nettet.
 - Første gang limer du inn en GitHub-nøkkel som bare gjelder fristad-repoet. Den huskes bare i din nettleser.
 - Uten nøkkel laster Ctrl+S ned filene som en zip med stiene som i repoet (også knappen «Last ned zip» i lagringsdialogen), så de kan legges inn for hånd eller sendes til Claude.
 - Lagre (Ctrl+S) skriver datafilene på grenen `redigering`, uten spørsmål når nøkkelen er limt inn én gang. Alle lagringene i én økt (én fane) blir én commit: lagrer du igjen, erstattes den. Den grenen bygges ikke, så det koster ingen Actions-minutter.

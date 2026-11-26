@@ -470,6 +470,7 @@ Reglene ligger i kjernen (`domain/world/crypt/check/`) og gjelder både dokument
 
 ### 13.2 Lagre
 
+- **Lokalt (eieren 26. november):** på http://localhost:1350 (`node tools/rediger.mjs`, se `docs/redigering.md` under «Lagring») skriver Lagre rett i `assets/levels/` i repoet på maskinen, uten nøkkel. Konfliktsjekken under gjelder da fila på maskinen (endret av Claude eller for hånd siden du begynte), og «Hent dette nivået fra repoet på maskinen» i Åpne leser den.
 - Lagre bruker `web/github.js` (`commit`, én commit per økt, uendret) og tar bare med nivåene og malene som er endret.
 - **Før commit** sammenlignes fila på grenen med den utkastet bygger på. Er den endret av noen andre (en annen fane, byredigeringen eller Claude), kommer et valg:
   - behold min,

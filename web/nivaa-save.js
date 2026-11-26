@@ -4,7 +4,7 @@
 
 import { level_blank, level_doc_names, level_doc_source } from "./pkg/fristad.js";
 import { makeZip } from "./zip.js";
-import { blobSha, branchFile, branchFiles, commit, SAVE_BRANCH, setToken, token } from "./github.js";
+import { blobSha, branchFile, branchFiles, commit, SAVE_AT, SAVE_FROM, setToken, token } from "./github.js";
 import { docPath, refresh, send } from "./nivaa-doc.js";
 import { clearPendingModules, clearPendingTemplates, pendingModules, pendingTemplates } from "./nivaa-palette.js";
 import { $, BASE, DRAFT_PREFIX, engine, esc, field, LAST, palette, params, setStatus, st, store, THEME_NAMES, toast } from "./nivaa-shared.js";
@@ -63,7 +63,7 @@ export async function save() {
     clearPendingModules();
     rememberBase(d.path, d.text);
     send({ cmd: "saved" });
-    toast(r.unchanged ? "Ingenting nytt å lagre." : `Lagret på grenen ${SAVE_BRANCH}.`);
+    toast(r.unchanged ? "Ingenting nytt å lagre." : `Lagret ${SAVE_AT}.`);
   } catch (e) {
     toast(`Lagringen feilet: ${e.message}. Utkastet ligger i nettleseren.`, 7000);
   }
@@ -92,10 +92,10 @@ async function checkConflict(d) {
   return new Promise((done) => {
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `<h2 class="lt-heading" data-size="s">Fila er endret på grenen</h2>
-      <p class="lt-paragraph">${esc(d.path)} på grenen ${SAVE_BRANCH} er lagret et annet sted siden du begynte her (en annen fane eller maskin). Lagrer du, skrives den over.</p>
+    card.innerHTML = `<h2 class="lt-heading" data-size="s">Fila er endret ${SAVE_AT}</h2>
+      <p class="lt-paragraph">${esc(d.path)} ${SAVE_AT} er endret et annet sted siden du begynte her (en annen fane, en annen maskin eller rett i fila). Lagrer du, skrives den over.</p>
       <div class="row"><button class="lt-button" data-variant="danger" id="c-over">Skriv over</button>
-      <button class="lt-button" data-variant="secondary" id="c-open">Åpne den på grenen</button>
+      <button class="lt-button" data-variant="secondary" id="c-open">Åpne den som ligger der</button>
       <button class="lt-button" data-variant="secondary" id="c-cancel">Avbryt</button></div>`;
     const ov = $("overlay");
     ov.replaceChildren(card);
@@ -107,7 +107,7 @@ async function checkConflict(d) {
     card.querySelector("#c-over").onclick = () => close("over");
     card.querySelector("#c-cancel").onclick = () => close("avbryt");
     card.querySelector("#c-open").onclick = () => {
-      openText(there.text, `Åpnet ${d.path} fra grenen ${SAVE_BRANCH}; utkastet ditt ligger i nettleseren.`);
+      openText(there.text, `Åpnet ${d.path} fra ${SAVE_FROM}; utkastet ditt ligger i nettleseren.`);
       rememberBase(d.path, there.text);
       close("avbryt");
     };
@@ -128,7 +128,7 @@ export function openDialog() {
     <p class="muted">Utkastene i denne nettleseren og nivåene i repoet. Et nivå merket «klar» erstatter det gamle nivået med samme nummer.</p>
     <div class="doclist">${drafts.map((p) => `<button class="lt-button" data-variant="secondary" data-draft="${p}">Utkast: ${p.replace("assets/levels/", "")}</button>`).join("")}
     ${names.map((n) => `<button class="lt-button" data-variant="secondary" data-repo="${n}">I repoet: nivaa_${n}.json</button>`).join("")}
-    <button class="lt-button" data-variant="secondary" data-branch="1">Hent dette nivået fra grenen ${SAVE_BRANCH}</button></div>
+    <button class="lt-button" data-variant="secondary" data-branch="1">Hent dette nivået fra ${SAVE_FROM}</button></div>
     <h2 class="lt-heading" data-size="s">Nytt nivå</h2>
     <div class="row" style="align-items:flex-end">
       ${field("Navnet", `<input id="new-name" class="lt-input" value="Nytt nivå">`).replace('class="field"', 'class="field" style="flex:1"')}
@@ -164,9 +164,9 @@ export function openDialog() {
   card.querySelector("[data-branch]").onclick = async () => {
     try {
       const files = await branchFiles([docPath]);
-      if (!files.length) toast(token() ? `${docPath} finnes ikke på grenen ${SAVE_BRANCH}.` : "Trenger nøkkelen til GitHub (Lagre spør etter den).");
+      if (!files.length) toast(token() ? `${docPath} finnes ikke ${SAVE_AT}.` : "Trenger nøkkelen til GitHub (Lagre spør etter den).");
       else {
-        openText(files[0].text, `Hentet ${docPath} fra grenen ${SAVE_BRANCH}.`);
+        openText(files[0].text, `Hentet ${docPath} fra ${SAVE_FROM}.`);
         rememberBase(docPath, files[0].text);
       }
     } catch (e) {

@@ -15,7 +15,12 @@ TOOLS="$PWD/target/tools"
 mkdir -p "$TOOLS"
 if [ ! -x "$TOOLS/wasm-bindgen" ] || [ "$("$TOOLS/wasm-bindgen" --version | awk '{print $2}')" != "$WB" ]; then
   echo "== wasm-bindgen $WB"
-  ARCHIVE="wasm-bindgen-$WB-x86_64-unknown-linux-musl"
+  # Actions bygger på Linux, eieren på Mac (lokal redigering, tools/rediger.mjs).
+  case "$(uname -s)-$(uname -m)" in
+    Darwin-arm64) ARCHIVE="wasm-bindgen-$WB-aarch64-apple-darwin" ;;
+    Darwin-*) ARCHIVE="wasm-bindgen-$WB-x86_64-apple-darwin" ;;
+    *) ARCHIVE="wasm-bindgen-$WB-x86_64-unknown-linux-musl" ;;
+  esac
   if curl -fsSL "https://github.com/rustwasm/wasm-bindgen/releases/download/$WB/$ARCHIVE.tar.gz" | tar -xz -C "$TOOLS"; then
     cp "$TOOLS/$ARCHIVE/wasm-bindgen" "$TOOLS/wasm-bindgen"
   else

@@ -4,7 +4,7 @@
 // (`fristad.edit-draft`) ved hver endring og hvert 30. sekund, og neste gang
 // fortsetter du fra utkastet, eller fra det du lagret sist.
 
-import { branchFiles, commit, SAVE_BRANCH, setToken, token } from "./github.js";
+import { branchFiles, commit, SAVE_AT, SAVE_FROM, setToken, token } from "./github.js";
 import { makeZip } from "./zip.js";
 
 const DRAFT = "fristad.edit-draft";
@@ -19,7 +19,7 @@ export function createSaving({ engine, toast, status, getView, isActive }) {
   dialog.innerHTML = `
     <h2 class="lt-dialog__title lt-heading" data-size="s">Lagre endringene</h2>
     <div class="lt-dialog__body">
-      <p class="lt-paragraph" data-size="small">Endringene legges på grenen <code>${SAVE_BRANCH}</code> i fristad-repoet, én commit for hele økta (lagrer du igjen,
+      <p class="lt-paragraph" data-size="small">Endringene legges ${SAVE_AT} i fristad-repoet, én commit for hele økta (lagrer du igjen,
       oppdateres den). Neste gang du redigerer, fortsetter du derfra. Claude kjører testene og slår dem inn i spillet.</p>
       <label class="lt-label" for="ed-msg">Hva du har endret (kan stå tomt)</label>
       <input id="ed-msg" class="lt-input" type="text">
@@ -59,7 +59,7 @@ export function createSaving({ engine, toast, status, getView, isActive }) {
       const r = await commit(out.files, message || `Redigering ${new Date().toLocaleString("nb-NO")}`);
       lastSaved = JSON.stringify(out.files);
       storeDraft();
-      const text = r.unchanged ? "Ingenting nytt å lagre." : `Lagret kl. ${hhmm()} på grenen ${SAVE_BRANCH}.`;
+      const text = r.unchanged ? "Ingenting nytt å lagre." : `Lagret kl. ${hhmm()} ${SAVE_AT}.`;
       setSaved(text);
       toast?.show?.(text);
       return true;
@@ -204,7 +204,7 @@ export function createSaving({ engine, toast, status, getView, isActive }) {
       if (draft) toast?.show?.("Utkastet var fra en eldre utgave av byen og er lagt bort.");
       try {
         files = await branchFiles([...cur.keys()]);
-        why = `Fortsetter fra det du lagret sist (grenen ${SAVE_BRANCH}).`;
+        why = `Fortsetter fra det du lagret sist (${SAVE_FROM}).`;
       } catch (e) {
         setSaved(`Fikk ikke hentet det du lagret: ${e.message}`);
       }

@@ -62,6 +62,8 @@ Promptene, katalogen, kvalitetsportene og godkjenningssiden, bygg og test, lever
 
 ## Nettversjonen og `window.fristad`
 
+**Redigeringen lokalt** (eieren 26. november): `node tools/rediger.mjs --bygg` bygger nettversjonen på Mac (`tools/build-web.sh` henter wasm-bindgen for maskinen) og viser `dist/` på http://localhost:1350, der Lagre i `?edit` og `?nivaa` skriver rett i `assets/layout/` og `assets/levels/` i repoet (`LOCAL` i `web/github.js`). Etter en endring i Rust eller `web/` må det bygges på nytt.
+
 **Nettversjonen:** med `?edit` åpner spillet i redigeringen (`web/editor.js`; `engine.edit(json)`, `catalog()`, `play()`, `view()`, `can_edit()`; testen `tools/edit-test.mjs`). `window.fristad.engine` har `place(x,y,z,yaw,pitch)`, `descend()` (rett ned i krypten), `key(code, down)`, `mouse(knapp, ned)`, `set_paused`, `set_weather(navn)`, `set_theme(mørk)`, `set_quality(navn)`, `set_bench(json)`, `triangles()`, `calls()`, `respawn`, `craft`, `buy`, `read_doc`, `save_state`/`load_state`, og `window.fristad.setQuality(navn)`, `setGraphics(redusert)` og `bench()`.
 
 ## Musa i nettleseren
