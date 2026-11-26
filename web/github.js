@@ -6,14 +6,26 @@
 //
 // Nøkkelen (en finkornet personlig nøkkel med «Contents: Read and write»
 // bare på fristad-repoet) huskes bare i denne nettleseren.
+//
+// Lokalt (eieren 26. november: `node tools/rediger.mjs`, http://localhost:1350)
+// trengs ingen nøkkel og ingen gren: «grenen» er filene i repoet på maskinen,
+// som tjeneren leser og skriver (`/lokal/les`, `/lokal/lagre`).
 
 const REPO = "MarkusAugust/fristad";
 const BRANCH = "redigering";
 // Grenen begynner fra forhåndsvisningen første gang.
 const BASE = "claude/detaljnivaa";
 const KEY = "fristad.github-token";
+export const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname) && location.port === "1350";
+
+async function local(what, body) {
+  const res = await fetch(`/lokal/${what}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(`Den lokale tjeneren svarte ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+  return res.json();
+}
 
 export function token() {
+  if (LOCAL) return "lokal";
   try {
     return localStorage.getItem(KEY) || "";
   } catch {
@@ -22,6 +34,7 @@ export function token() {
 }
 
 export function setToken(t) {
+  if (LOCAL) return;
   try {
     if (t) localStorage.setItem(KEY, t);
     else localStorage.removeItem(KEY);
@@ -65,6 +78,7 @@ function last() {
 // Filene på grenen `redigering` (de som finnes der), som `{path, text}`.
 // Gir [] når grenen ikke finnes eller du ikke har nøkkel.
 export async function branchFiles(paths) {
+  if (LOCAL) return (await local("les", { paths })).files;
   if (!token()) return [];
   const ref = await api(`/git/ref/heads/${BRANCH}`, { allow404: true });
   if (!ref) return [];
@@ -81,6 +95,10 @@ export async function branchFiles(paths) {
 // Én fil på grenen `redigering` med blob-sha-en (til konfliktsjekken før
 // lagring, docs/nivaaredigering.md del 13.2), eller null om den ikke finnes.
 export async function branchFile(path) {
+  if (LOCAL) {
+    const [f] = (await local("les", { paths: [path] })).files;
+    return f ? { sha: await blobSha(f.text), text: f.text } : null;
+  }
   if (!token()) return null;
   const ref = await api(`/git/ref/heads/${BRANCH}`, { allow404: true });
   if (!ref) return null;
@@ -105,6 +123,7 @@ export async function blobSha(text) {
 // Filene på grenen `redigering` (lages fra BASE om den ikke finnes). Gir
 // commitens sha.
 export async function commit(files, message) {
+  if (LOCAL) return { unchanged: !(await local("lagre", { files })).changed };
   let ref = await api(`/git/ref/heads/${BRANCH}`, { allow404: true });
   if (!ref) {
     const base = await api(`/git/ref/heads/${encodeURIComponent(BASE)}`);
@@ -130,4 +149,6 @@ export async function commit(files, message) {
   return { sha: made.sha, unchanged: false, replaced: !!replace };
 }
 
-export const SAVE_BRANCH = BRANCH;
+// Hvor det lagres, til meldingene: «Lagret på grenen redigering», «hentet fra grenen redigering».
+export const SAVE_AT = LOCAL ? "i repoet på maskinen" : `på grenen ${BRANCH}`;
+export const SAVE_FROM = LOCAL ? "repoet på maskinen" : `grenen ${BRANCH}`;
