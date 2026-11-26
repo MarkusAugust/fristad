@@ -118,7 +118,7 @@ def cameras(name, cells, hosts):
 
 
 def font(h):
-    for f in ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
+    for f in ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"):
         try:
             return ImageFont.truetype(f, h)
         except OSError:
@@ -212,8 +212,9 @@ def shoot_page(page, only):
 
 def palette(name, files):
     """Bildet i paletten i redigeringen (`assets/levels/moduler/grav/<navn>.jpg`,
-    320 × 224): det første bildet innenfra."""
-    if not files or not os.path.exists(files[0]):
+    320 × 224): det første bildet innenfra. `FRISTAD_UTEN_PALETT=1` lar
+    dem stå (`tools/dom.sh`: godkjenningssiden bygges uten å røre repoet)."""
+    if os.environ.get("FRISTAD_UTEN_PALETT") or not files or not os.path.exists(files[0]):
         return
     im = Image.open(files[0]).convert("RGB")
     im.thumbnail((320, 224))

@@ -128,17 +128,19 @@ dialog::backdrop { background: rgb(0 0 0 / .75); }
 h2.section { font: 400 22px/1.2 var(--display); margin: 8px 0 0; }
 details.pile { background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; }
 details.pile > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; }
-details.pile ul { list-style: none; margin: 0; padding: 0 16px 12px; display: grid; gap: 6px; }
-details.pile li { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: 12px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 6px; }
-details.pile li .nm { font-family: var(--mono); overflow-wrap: anywhere; }
-details.pile li .v { color: var(--muted); }
-details.pile li .v b { color: var(--ink); text-transform: capitalize; }
+details.pile > ul { list-style: none; margin: 0; padding: 0 16px 12px; display: grid; gap: 6px; }
+details.pile > ul > li { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: 12px; font-size: 14px; border-top: 1px solid var(--line); padding-top: 6px; }
+details.pile > ul > li .nm { font-family: var(--mono); overflow-wrap: anywhere; }
+details.pile > ul > li .v { color: var(--muted); }
+details.pile > ul > li .v b { color: var(--ink); text-transform: capitalize; }
+details.pile .cards { display: grid; gap: 18px; padding: 0 16px 16px; }
+.built { font-size: 13px; color: var(--muted); }
 .photo.sheet img { aspect-ratio: auto; object-fit: contain; }
 @media (max-width: 760px) {
   .item { grid-template-columns: minmax(0, 1fr); }
   .item { scroll-margin-top: 220px; }
   .hint { display: none; }
-  details.pile li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  details.pile > ul > li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 @media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
 </style>
@@ -156,7 +158,8 @@ details.pile li .v b { color: var(--ink); text-transform: capitalize; }
 
 <main>
   <div class="wrap">
-    <p class="intro">Alt spillet er laget av, i faner. Øverst i hver fane står det som venter på deg: det du ikke har vurdert, og det som er endret siden du så det (med før og etter). Et kort blir stående til du har svart, uansett hvor mye annet jeg legger til. Det du har underkjent og som ikke er rettet ennå, ligger hos meg, og det godkjente står nederst.</p>
+    <p class="intro" id="intro">Alt spillet er laget av, i faner. Øverst i hver fane står det som venter på deg: det du ikke har vurdert, og det som er endret siden du så det (med før og etter). Et kort blir stående til du har svart, uansett hvor mye annet jeg legger til. Det du har underkjent og som ikke er rettet ennå, ligger hos meg, og det godkjente står nederst.</p>
+    <p class="built" id="built" hidden></p>
     <p class="notice" id="notice" hidden></p>
     <div id="list"></div>
   </div>
@@ -183,6 +186,16 @@ const LABEL = { godkjent: "Godkjent", underkjent: "Underkjent", usikker: "Usikke
 let items = [], cats = [], tab = null;
 const answers = new Map();   // id -> {verdict, why, at, version} fra lagringen
 let db = null, readOnly = false;
+// Siden på eierens maskin (`tools/rediger.mjs`, http://localhost:1350/dom/):
+// dommene skrives rett i approvals.json, og alle kortene har bilde.
+const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
+function localDb() {
+  const send = (id, data) => fetch("/lokal/dom", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, data }) })
+    .then(r => { if (!r.ok) throw new Error("lagring"); });
+  const all = (next, fail) => fetch("/lokal/dom").then(r => r.json())
+    .then(docs => next({ docChanges: () => Object.entries(docs).map(([id, data]) => ({ type: "added", doc: { id, data: () => data } })) }), () => fail({ code: "lokal" }));
+  return { collection: () => ({ doc: id => ({ set: data => send(id, data) }), onSnapshot: all }) };
+}
 const queue = new Map(), timers = new Map();
 
 // Et svar gjelder versjonen kortet viser, og bare om det er gitt etter den
@@ -191,6 +204,9 @@ const queue = new Map(), timers = new Map();
 // rettet). Et svar på en eldre versjon er «Forrige dom».
 const answerOf = it => { const a = answers.get(it.id); return a && a.version === it.version && (!it.fixed_at || Date.parse(a.at) > Date.parse(it.fixed_at)) ? a : null; };
 const waiting = it => it.state === "venter";
+// Dommen som står i approvals.json over et kort som ikke venter (lokalt kan den endres).
+const standing = it => !waiting(it) && it.prior ? { verdict: it.prior.verdict, why: it.prior.why || "" } : null;
+const shown = it => answerOf(it) || standing(it) || {};
 const open = it => waiting(it) && !(answerOf(it) || {}).verdict;
 
 function renderBar() {
@@ -222,7 +238,8 @@ function card(it) {
   }
   const p = document.createElement("div"); p.className = "panel";
   const eb = document.createElement("div"); eb.className = "eyebrow";
-  eb.textContent = ({ modell: "Modell", modul: "Modul (satt sammen av bitene)", samlet: "Satt sammen i et rom" }[it.kind] || "Tekstur") + (it.prior ? " · endret siden du så den" : " · ny");
+  eb.textContent = ({ modell: "Modell", modul: "Modul (satt sammen av bitene)", samlet: "Satt sammen i et rom" }[it.kind] || "Tekstur")
+    + (it.state === "hos_meg" ? " · hos meg, ikke rettet ennå" : it.state === "godkjent" ? " · godkjent" : it.prior ? " · endret siden du så den" : " · ny");
   const h = document.createElement("h2"); h.className = "name"; h.textContent = it.name;
   p.append(eb, h);
   if (it.about) { const a = document.createElement("p"); a.className = "about"; a.textContent = it.about; p.append(a); }
@@ -241,7 +258,7 @@ function card(it) {
   if (it.prior) {
     const pr = document.createElement("div"); pr.className = "prior";
     const b = document.createElement("b"); b.textContent = it.prior.verdict;
-    pr.append("Forrige dom ", it.prior.date || "", ": ", b, ". ", it.prior.why || "");
+    pr.append(waiting(it) ? "Forrige dom " : "Dommen som står ", it.prior.date || "", ": ", b, ". ", it.prior.why || "");
     p.append(pr);
   }
   const ch = document.createElement("div"); ch.className = "choose"; ch.setAttribute("role", "group"); ch.setAttribute("aria-label", "Dom");
@@ -266,7 +283,7 @@ function card(it) {
   return el;
 }
 function paint(el, it) {
-  const a = answerOf(it) || {};
+  const a = shown(it);
   if (a.verdict) el.dataset.verdict = a.verdict; else delete el.dataset.verdict;
   for (const b of el.querySelectorAll(".choose button")) {
     b.setAttribute("aria-pressed", String(a.verdict ? a.verdict === b.dataset.v : false));
@@ -288,6 +305,14 @@ function pile(title, list, line) {
   }
   d.append(ul); return d;
 }
+// Lokalt: kortene med bilde i en bunke som kan foldes ut, så dommen kan endres.
+function cardPile(title, list) {
+  const d = document.createElement("details"); d.className = "pile";
+  const s = document.createElement("summary"); s.textContent = `${title} (${list.length})`; d.append(s);
+  const box = document.createElement("div"); box.className = "cards";
+  d.addEventListener("toggle", () => { if (d.open && !box.children.length) box.append(...list.map(card)); });
+  d.append(box); return d;
+}
 function renderList() {
   const mine = items.filter(it => it.cat === tab);
   const wait = mine.filter(waiting), held = mine.filter(it => it.state === "hos_meg"), done = mine.filter(it => it.state === "godkjent");
@@ -296,10 +321,12 @@ function renderList() {
   const h = document.createElement("h2"); h.className = "section"; h.textContent = `Venter på deg (${wait.length})`; out.push(h);
   if (!wait.length) { const e = document.createElement("p"); e.className = "empty"; e.textContent = "Ingenting venter på deg her."; out.push(e); }
   out.push(...wait.map(card));
-  if (held.length) out.push(pile("Hos meg: underkjent eller usikker, ikke rettet ennå", held, (v, it) => {
+  if (held.length && LOCAL) out.push(cardPile("Hos meg: underkjent eller usikker, ikke rettet ennå", held));
+  else if (held.length) out.push(pile("Hos meg: underkjent eller usikker, ikke rettet ennå", held, (v, it) => {
     const b = document.createElement("b"); b.textContent = it.prior.verdict; v.append(b, " ", it.prior.date || "", ": ", it.prior.why || "");
   }));
-  if (done.length) out.push(pile("Godkjent", done, (v, it) => { v.append("godkjent ", (it.prior && it.prior.date) || ""); }));
+  if (done.length && LOCAL) out.push(cardPile("Godkjent", done));
+  else if (done.length) out.push(pile("Godkjent", done, (v, it) => { v.append("godkjent ", (it.prior && it.prior.date) || ""); }));
   const parts = mine.filter(it => it.state === "i_modul");
   if (parts.length) out.push(pile("Bitene og mekanismene du dømmer gjennom modulene og kortene satt sammen", parts, (v, it) => { v.append(it.about || ""); }));
   const gone = mine.filter(it => it.state === "utgaar");
@@ -312,7 +339,7 @@ function renderList() {
 async function save(it, change) {
   if (!db || readOnly) return;
   const raw = answers.get(it.id);
-  const mine = answerOf(it) || {};
+  const mine = shown(it);
   const before = mine.version ? (raw.before || null) : (raw ? { verdict: raw.verdict || "", why: raw.why || "", at: raw.at || "" } : null);
   const next = { verdict: mine.verdict || "", why: mine.why || "", ...change, at: new Date().toISOString(), version: it.version, before };
   if (next.verdict === (mine.verdict || "") && next.why === (mine.why || "")) return;
@@ -355,15 +382,16 @@ function note(text) { const n = document.getElementById("notice"); n.textContent
 // Tastene: j/k merker neste og forrige kort, 1–3 og h virker bare på det
 // merkede kortet (aldri på et kort som bare er nær toppen).
 let cur = -1;
+const visible = () => [...document.querySelectorAll(".item")].filter(c => c.offsetParent);
 function mark(i, scroll) {
-  const cards = [...document.querySelectorAll(".item")];
+  const cards = visible();
   if (!cards.length) return;
   cur = Math.max(0, Math.min(cards.length - 1, i));
   cards.forEach((c, k) => c.classList.toggle("current", k === cur));
   if (scroll) cards[cur].scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
-document.addEventListener("focusin", e => { const c = e.target.closest && e.target.closest(".item"); if (c) mark([...document.querySelectorAll(".item")].indexOf(c), false); });
-document.addEventListener("pointerdown", e => { const c = e.target.closest && e.target.closest(".item"); if (c) mark([...document.querySelectorAll(".item")].indexOf(c), false); });
+document.addEventListener("focusin", e => { const c = e.target.closest && e.target.closest(".item"); if (c) mark(visible().indexOf(c), false); });
+document.addEventListener("pointerdown", e => { const c = e.target.closest && e.target.closest(".item"); if (c) mark(visible().indexOf(c), false); });
 document.addEventListener("keydown", e => {
   if (e.target.closest && e.target.closest("textarea, input")) { if (e.key === "Escape") e.target.blur(); return; }
   if (document.querySelector("dialog[open]")) return;
@@ -373,11 +401,11 @@ document.addEventListener("keydown", e => {
   else if (k === "k") { mark(cur < 0 ? 0 : cur - 1, true); e.preventDefault(); }
   else if (cur < 0) return;
   else if (["1", "2", "3"].includes(k)) {
-    const el = document.querySelectorAll(".item")[cur];
+    const el = visible()[cur];
     const it = el && items.find(x => x.id === el.id);
     if (it) { choose(it, ["godkjent", "underkjent", "usikker"][+k - 1]); e.preventDefault(); }
   } else if (k === "h") {
-    const el = document.querySelectorAll(".item")[cur];
+    const el = visible()[cur];
     if (el) { el.querySelector("textarea").focus(); e.preventDefault(); }
   }
 });
@@ -395,8 +423,13 @@ async function start() {
   try { saved = localStorage.getItem("dommen.tab"); } catch (e) {}
   const withWork = cats.find(([k]) => items.some(it => it.cat === k && open(it)));
   tab = (withWork && withWork[0]) || (cats.some(([k]) => k === saved) ? saved : cats[0][0]);
+  if (LOCAL) {
+    document.getElementById("intro").textContent = "Alt spillet er laget av, i faner. Øverst i hver fane står det som venter på deg: det du ikke har vurdert, og det som er endret siden du så det (med før og etter). Under står det som ligger hos meg og det godkjente, med bilder: fold ut bunken, så kan du endre en dom når som helst. Dommene skrives rett i assets/catalog/approvals.json på maskinen.";
+    const b = document.getElementById("built");
+    if (pageData.built) { b.textContent = "Siden ble bygd " + new Date(pageData.built).toLocaleString("nb-NO", { dateStyle: "long", timeStyle: "short" }) + ". Det som er endret etter det, vises ikke før Claude har bygd den på nytt."; b.hidden = false; }
+  }
   renderBar(); renderList();
-  db = window.claude && window.claude.use ? await window.claude.use("db").catch(() => null) : null;
+  db = LOCAL ? localDb() : window.claude && window.claude.use ? await window.claude.use("db").catch(() => null) : null;
   if (!db) { note("Svarene kan ikke lagres i denne visningen. Åpne siden i Claude for å gi dommer."); return; }
   document.querySelectorAll(".item").forEach(x => { const i = items.find(y => y.id === x.id); if (i) paint(x, i); });
   db.collection("dom").onSnapshot(snap => {

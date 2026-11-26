@@ -62,6 +62,11 @@ VIEWS = ["front:0:6:1.15:0.4", "corner:-35:12:1.2:0.4"]
 # (siden, data.json, viewer.js, teksturlagene i 3D) får plass i de siste 31.
 # Hevet fra 400 da kryptnivå 8–10 kom (17. oktober).
 MAX_WAITING = 480
+# Den lokale siden (eieren 26. november: «du må også vise meg
+# godkjenningssiden lokalt»): `tools/rediger.mjs` viser mappa på
+# http://localhost:1350/dom/, og svarene ligger i `svar.json` der.
+LOCAL = os.path.join(ROOT, "target", "qa", "dom")
+MAC_FONT = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 
 # Fanene, i rekkefølge.
 CATEGORIES = [
@@ -760,7 +765,7 @@ def same_look(a, b):
 
 
 def font(h):
-    for f in ("DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
+    for f in ("DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", MAC_FONT):
         try:
             return ImageFont.truetype(f, h)
         except OSError:
@@ -796,10 +801,28 @@ def sheet(before, after, out):
 # --- Siden ---------------------------------------------------------------------
 
 
-def build(out, render=True):
+def warm(jobs):
+    """Studiobildene til mange ting på en gang (fire Blender om gangen):
+    den lokale siden viser alt, ikke bare det som venter."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    def one(job):
+        try:
+            shots(*job)
+        except (subprocess.CalledProcessError, OSError) as e:
+            print(f"  fikk ikke bilde av {job[1]}: {e}")
+    with ThreadPoolExecutor(4) as pool:
+        list(pool.map(one, jobs))
+
+
+def build(out, render=True, local=False):
     """Bygger siden i `out` (index.html, data.json og img/ med ett bilde per
     kort som venter). Ting som er bygd på nytt uten å se annerledes ut,
-    beholder dommen (versjonen føres videre). Returnerer kortene."""
+    beholder dommen (versjonen føres videre). Returnerer kortene.
+
+    `local` er siden på eierens maskin: der er det ingen grense på antall
+    filer, så også det som ligger hos meg og det godkjente får bilde og kan
+    dømmes på nytt, og dommene over modulene som er borte, vises ikke."""
     ap = load("approvals.json")
     about = load("models.json")["models"]
     tex = load("textures.json")["textures"]
@@ -813,6 +836,10 @@ def build(out, render=True):
     if os.path.exists(os.path.join(WORK, "moduler", "moduler.json")):
         with open(os.path.join(WORK, "moduler", "moduler.json")) as f:
             mods = json.load(f)
+    shown = lambda st: st == "venter" or (local and st in ("hos_meg", "godkjent"))
+    if local and render:
+        warm([(k, n, p, current(k, n, p)) for _, k, n, p in things()
+              if k in ("modell", "tekstur") and shown(state_of(k, n, ap.get(group_of(k), {}).get(n), current(k, n, p), fix_for(fixes, n)))])
     for id_, kind, name, path in things():
         group = group_of(kind)
         e = ap.get(group, {}).get(name)
@@ -840,11 +867,12 @@ def build(out, render=True):
                 e["seen"] = cur
                 st = item["state"] = state_of(kind, name, e, cur, fix)
                 carried += 1
-            if st == "venter" and render and os.path.exists(shot):
+            if shown(st) and render and os.path.exists(shot):
                 # En bit som bare synes i en annen stein (skyteskårene i
                 # kvader, tømmeret i sjakta i berg): rettingens bilder under.
                 extra = ((fixes.get(name) or {}).get(cur) or {}).get("images", [])
-                with_fix(before_after(shot, os.path.join(WORK, "moduler", "foer", f"{item['module']}.png")), extra).save(os.path.join(img, f"{id_}.jpg"), quality=86)
+                card = before_after(shot, seen_shot) if st == "venter" else Image.open(shot).convert("RGB")
+                with_fix(card, extra).save(os.path.join(img, f"{id_}.jpg"), quality=86)
                 item["img"] = f"img/{id_}.jpg"
             items.append(item)
             continue
@@ -859,9 +887,10 @@ def build(out, render=True):
                 "path": path, "seen": (e or {}).get("seen"),
             }
             shot = os.path.join(WORK, "mekanismer", f"{card['id']}.png")
-            if st == "venter" and render and os.path.exists(shot):
+            if shown(st) and render and os.path.exists(shot):
                 extra = ((fixes.get(name) or {}).get(cur) or {}).get("images", [])
-                with_fix(before_after(shot, os.path.join(WORK, "mekanismer", "foer", f"{card['id']}.png")), extra).save(os.path.join(img, f"{id_}.jpg"), quality=86)
+                sheet_ = before_after(shot, os.path.join(WORK, "mekanismer", "foer", f"{card['id']}.png")) if st == "venter" else Image.open(shot).convert("RGB")
+                with_fix(sheet_, extra).save(os.path.join(img, f"{id_}.jpg"), quality=86)
                 item["img"] = f"img/{id_}.jpg"
             items.append(item)
             continue
@@ -885,8 +914,9 @@ def build(out, render=True):
         }
         if st == "utgaar":
             item["about"] = load("modules.json")["utgaar"].get("hvorfor", "")
-        if st == "venter" and render:
-            if fix and fix.get("images"):
+        if shown(st) and render:
+            # Rettingens bilder (armene og våpnene i bruk) gjelder versjonen de er tatt av.
+            if fix and fix.get("images") and (st == "venter" or fix.get("version") == cur) and all(os.path.exists(os.path.join(ROOT, p)) for p in fix["images"]):
                 ims = [Image.open(os.path.join(ROOT, p)).convert("RGB") for p in fix["images"]]
                 w = max(i.width for i in ims)
                 ims = [i.resize((w, round(i.height * w / i.width))) for i in ims]
@@ -907,7 +937,7 @@ def build(out, render=True):
     # holder med en modell»): dommene står, i «Utgår» med modulen som tar over.
     cards = {n for _, k, n, _ in things() if k in ("modul", "samlet")}
     for name, e in sorted(ap.get("modules", {}).items()):
-        if name in cards or name.startswith("mek_"):
+        if name in cards or name.startswith("mek_") or local:
             continue
         base = name.split("_", 1)[1] if "_" in name else name
         items.append({
@@ -922,10 +952,27 @@ def build(out, render=True):
         it.pop("path", None)
         it.pop("seen", None)
     with open(os.path.join(out, "data.json"), "w") as f:
-        json.dump({"categories": CATEGORIES, "items": items, "layers": layers, "levels": levels, "held": held}, f, ensure_ascii=False)
+        json.dump({"categories": CATEGORIES, "items": items, "layers": layers, "levels": levels, "held": held, "built": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, f, ensure_ascii=False)
+    if local:
+        prune_answers(items)
     shutil.copy(os.path.join(HERE, "approvals.html"), os.path.join(out, "index.html"))
     shutil.copy(os.path.join(HERE, "viewer.js"), os.path.join(out, "viewer.js"))
     return items, carried
+
+
+def prune_answers(items):
+    """Svarene på den lokale siden (`svar.json`) etter en ny bygging: det som
+    alt står i approvals.json, eller gjelder en eldre versjon, tas ut. Igjen
+    står punktene uten dom over kort som fortsatt venter."""
+    p = os.path.join(LOCAL, "svar.json")
+    if not os.path.exists(p):
+        return
+    with open(p) as f:
+        saved = json.load(f)
+    now = {it["id"]: it["version"] for it in items}
+    keep = {k: v for k, v in saved.items() if not v["data"].get("verdict") and v["data"].get("version") == now.get(k)}
+    with open(p, "w") as f:
+        json.dump(keep, f, indent=1, ensure_ascii=False)
 
 
 def use_assets(out, urls):
@@ -1018,7 +1065,7 @@ def with_fix(card, images):
 
 
 def _font(h):
-    for f in ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"):
+    for f in ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", MAC_FONT):
         try:
             return ImageFont.truetype(f, h)
         except OSError:

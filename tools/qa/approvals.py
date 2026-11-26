@@ -6,6 +6,8 @@
     python3 -m tools.qa approvals apply SVAR   # svarene fra siden inn i approvals.json
     python3 -m tools.qa approvals assets UT MAP # bildene i UT pekes til asset-lageret (MAP: sti → /_blob/id)
     python3 -m tools.qa approvals migrate SVAR # én gang: versjonen eieren så, fra svartidene
+    python3 -m tools.qa approvals lokal        # siden på maskinen (target/qa/dom): alt med bilder
+    python3 -m tools.qa approvals svar         # én dom fra den lokale siden (json på stdin) inn i approvals.json
 
 Siden er `tools/qa/approvals.html`, bygd av `review.py`: den viser
 tilstanden (det som venter, det som ligger hos meg og det godkjente), ikke
@@ -43,6 +45,44 @@ def apply(path):
             rows = json.load(f)
     if not rows:
         raise SystemExit(f"ingen svar i {path}")
+    return apply_rows(rows)
+
+
+def answer(row):
+    """Én dom fra den lokale siden (`{id, data}`), rett inn i approvals.json
+    (eieren 26. november). Siden lagrer mens eieren skriver, så det samme
+    kortet kommer flere ganger: hver gang føres svaret inn på det som sto
+    før det første (`base` i `svar.json`), som om bare det siste var gitt.
+    Ellers ble hver halvskrevne grunn stående blant punktene."""
+    from .review import LOCAL
+    sp = os.path.join(LOCAL, "svar.json")
+    saved = json.load(open(sp)) if os.path.exists(sp) else {}
+    kind, name = row["id"].split("_", 1)
+    group = {"t": "textures", "m": "models", "u": "modules"}[kind]
+    p = os.path.join(DATA, "approvals.json")
+    with open(p) as f:
+        ap = json.load(f)
+    if row["id"] in saved:
+        base = saved[row["id"]]["base"]
+        if base is None:
+            ap.get(group, {}).pop(name, None)
+        else:
+            ap.setdefault(group, {})[name] = base
+        with open(p, "w") as f:
+            json.dump(ap, f, indent=1, ensure_ascii=False)
+            f.write("\n")
+    else:
+        base = ap.get(group, {}).get(name)
+    n = apply_rows([row])
+    saved[row["id"]] = {"base": base, "data": row["data"]}
+    os.makedirs(LOCAL, exist_ok=True)
+    with open(sp, "w") as f:
+        json.dump(saved, f, indent=1, ensure_ascii=False)
+    return n
+
+
+def apply_rows(rows):
+    """Svarene (`{id, data}`) inn i approvals.json. Gir antallet som endret noe."""
     p = os.path.join(DATA, "approvals.json")
     with open(p) as f:
         ap = json.load(f)
@@ -187,6 +227,20 @@ def main(argv):
         for e in errors:
             print("FEIL:", e)
         return 1 if errors else 0
+    if argv[:1] == ["lokal"]:
+        from . import review
+        os.makedirs(review.LOCAL, exist_ok=True)
+        items, carried = review.build(review.LOCAL, local=True)
+        for key, label in review.CATEGORIES:
+            c = [it for it in items if it["cat"] == key]
+            print(f"{label}: {sum(it['state'] == 'venter' for it in c)} venter, {sum(it['state'] == 'hos_meg' for it in c)} hos meg, {sum(it['state'] == 'godkjent' for it in c)} godkjent")
+        missing = [it["name"] for it in items if it["state"] in ("venter", "hos_meg", "godkjent") and not it.get("img")]
+        for n in missing:
+            print("FEIL: mangler bilde:", n)
+        return 1 if missing else 0
+    if argv[:1] == ["svar"]:
+        print(f"{answer(json.load(sys.stdin))} dommer ført inn i assets/catalog/approvals.json")
+        return 0
     if argv[:1] == ["audit"]:
         from . import review
         errors = review.audit()
