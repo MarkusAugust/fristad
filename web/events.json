@@ -78,17 +78,6 @@
     }
   },
   "fade": {},
-  "fetch_level": {
-    "level": "tall"
-  },
-  "fetch_models": {
-    "names": [
-      "tekst"
-    ],
-    "paths": [
-      "tekst"
-    ]
-  },
   "foe": {
     "foe": {
       "hp": "tall",

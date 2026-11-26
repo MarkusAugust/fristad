@@ -117,7 +117,7 @@ pub fn manifest(source: &dyn crate::ports::ModelSource) -> Manifest {
 
 /// Modellfilene nettleseren hentet ved start, og manifestet for dem som
 /// kommer senere: monteringen setter dem ut etter manifestet, og `App`
-/// ber om dem (`Event::FetchModels`).
+/// ber om dem (`Fetch::Models`).
 pub struct WithManifest<'a>(pub &'a Files, pub Manifest);
 
 impl crate::ports::ModelSource for WithManifest<'_> {

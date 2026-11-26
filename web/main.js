@@ -26,7 +26,7 @@ import { openWorkshop } from "./workshop.js";
 import { benchRunning, countFrame, runBench } from "./bench.js";
 import { adapt, fit, QUALITIES, quality, setGraphics, setQuality } from "./graphics.js";
 import { fade, hurtArc, lootOpen, openLoot, openLore, setBars, setFoe, setGoal, setLootMore, toggleJournal, updateBubbles, updateMarks, warp } from "./hud.js";
-import { checkGpu, fetchLazy, fetchLevel, gpuLost, gpuName, lazyManifest, loadAssets, loadModels, loseGpu, softwareGpu, stage, watchGpuLoss } from "./loading.js";
+import { checkGpu, deliver, gpuLost, gpuName, lazyManifest, loadAssets, loadModels, loseGpu, softwareGpu, stage, watchGpuLoss } from "./loading.js";
 import { gamma, graphicsOpen, mouseSens, openGraphics, openSettings, settingsOpen } from "./settings.js";
 
 defineLtToast();
@@ -169,6 +169,7 @@ function loop(now) {
       console.error(`Hendelsen ${e?.type ?? "?"} feilet:`, err);
     }
   }
+  deliver();
   // Bilder per sekund, så eieren kan si hvordan det flyter.
   frames++;
   countFrame();
@@ -216,12 +217,6 @@ function handle(e) {
       break;
     case "fade":
       fade();
-      break;
-    case "fetch_level":
-      fetchLevel(e.level);
-      break;
-    case "fetch_models":
-      fetchLazy(e.names, e.paths);
       break;
     case "warp":
       warp();

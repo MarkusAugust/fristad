@@ -3,7 +3,7 @@
 
 use super::assembly::Prepared;
 use super::session::Session;
-use crate::ports::driving::{Command, Event, Input, Play, SaveData, Status};
+use crate::ports::driving::{Command, Event, Fetch, Input, Play, SaveData, Status};
 use crate::ports::{Physics, Renderer, StaticScene};
 
 pub struct App<R: Renderer, P: Physics> {
@@ -16,6 +16,8 @@ pub struct App<R: Renderer, P: Physics> {
     /// Byens modeller som hentes etter start (nettleseren), og om
     /// rendereren har dem.
     lazy: Vec<Lazy>,
+    /// Det verten må hente, samlet til den spør (`fetches`).
+    fetches: Vec<Fetch>,
     /// Lysstyrken spilleren har valgt (`Command::Gamma`).
     gamma: f32,
 }
@@ -27,7 +29,7 @@ pub enum Pieces {
     Always,
     /// Ikke lastet.
     Missing,
-    /// Bedt om (`Event::FetchLevel`), ikke kommet ennå.
+    /// Bedt om (`Fetch::Level`), ikke kommet ennå.
     Asked,
     /// Kom med `add_level`, og slippes når du er langt unna.
     Loaded,
@@ -122,10 +124,17 @@ impl<R: Renderer, P: Physics> App<R, P> {
                 (l.pieces.clone(), if have { Pieces::Always } else { Pieces::Missing })
             })
             .collect();
-        Self { session, input: Input::default(), renderer, physics, levels, lazy, gamma: 1.0 }
+        Self { session, input: Input::default(), renderer, physics, levels, lazy, fetches: vec![], gamma: 1.0 }
     }
 
-    /// Modellene som ble bedt om (`Event::FetchModels`) er hentet:
+    /// Det verten må hente siden sist den spurte: nivåene og modellene økta
+    /// trenger nå. Hver ting nevnes én gang, og verten svarer med
+    /// `add_level` og `add_models`.
+    pub fn fetches(&mut self) -> Vec<Fetch> {
+        std::mem::take(&mut self.fetches)
+    }
+
+    /// Modellene som ble bedt om (`Fetch::Models`) er hentet:
     /// rendereren får dem.
     pub fn add_models(&mut self, models: &[crate::domain::model::Model]) {
         for m in models {
@@ -145,7 +154,7 @@ impl<R: Renderer, P: Physics> App<R, P> {
 
     /// Ber om modellene økta trenger nå: utstyret du har på, det som står
     /// nær, og det som hører til nivåene den ber om.
-    fn stream_models(&mut self, events: &mut Vec<Event>) {
+    fn stream_models(&mut self) {
         if self.lazy.iter().all(|l| l.state != Pieces::Missing) {
             return;
         }
@@ -171,7 +180,7 @@ impl<R: Renderer, P: Physics> App<R, P> {
         ask.sort_by_key(|n| gear.iter().position(|g| g == n));
         ask.extend(rest);
         if !ask.is_empty() {
-            events.push(Event::FetchModels(ask));
+            self.fetches.push(Fetch::Models(ask));
         }
     }
 
@@ -190,12 +199,12 @@ impl<R: Renderer, P: Physics> App<R, P> {
     }
 
     /// Ber om nivåene økta trenger og slipper dem du har forlatt.
-    fn stream_levels(&mut self, events: &mut Vec<Event>) {
+    fn stream_levels(&mut self) {
         let wanted = self.session.wanted_levels();
         for (k, (pieces, state)) in self.levels.iter_mut().enumerate() {
             match (*state, wanted.contains(&k)) {
                 (Pieces::Missing, true) => {
-                    events.push(Event::FetchLevel(k as u32 + 1));
+                    self.fetches.push(Fetch::Level(k as u32 + 1));
                     *state = Pieces::Asked;
                 }
                 (Pieces::Loaded, false) => {
@@ -219,9 +228,9 @@ impl<R: Renderer, P: Physics> Play for App<R, P> {
     }
 
     fn tick(&mut self, dt: f32) -> Vec<Event> {
-        let mut events = self.session.update(&mut self.input, dt, &mut self.physics);
-        self.stream_levels(&mut events);
-        self.stream_models(&mut events);
+        let events = self.session.update(&mut self.input, dt, &mut self.physics);
+        self.stream_levels();
+        self.stream_models();
         events
     }
 

@@ -160,7 +160,7 @@ const TOO_LONG: &[(&str, usize)] = &[
     ("crates/fristad-domain/src/domain/geometry.rs", 802),
     ("crates/fristad-domain/src/domain/mobs.rs", 887),
     ("src/edit_tests.rs", 1002),
-    ("src/tests.rs", 3587),
+    ("src/tests.rs", 3586),
 ];
 
 /// Filene som hadde linjer over `MAX_WIDTH` da grensen kom (25. november),
