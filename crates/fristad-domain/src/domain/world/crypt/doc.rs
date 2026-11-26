@@ -14,7 +14,7 @@
 use super::stone::StoneRef;
 use serde::{Deserialize, Serialize};
 
-/// Nummeret (1–10) eller navnet (`test`).
+/// Nummeret (fra 1, uten øvre grense) eller navnet (`test`).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum LevelId {

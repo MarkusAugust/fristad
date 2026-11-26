@@ -121,7 +121,7 @@ pub const SHORTCUT_H: f32 = 2.3;
 
 #[derive(Clone, Debug)]
 pub struct Level {
-    /// Nummeret (1–10), navnet og temaet.
+    /// Nummeret (fra 1), navnet og temaet.
     pub n: u32,
     pub name: String,
     pub theme: String,

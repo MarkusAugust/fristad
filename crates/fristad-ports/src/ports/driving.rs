@@ -494,7 +494,7 @@ pub struct FoeView {
 /// of war), og merkene i dem.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MapView {
-    /// Nivået (1–10) og navnet.
+    /// Nivået (fra 1) og navnet.
     pub level: u32,
     pub name: String,
     pub rooms: Vec<Vec<[f32; 2]>>,
