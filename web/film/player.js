@@ -6,8 +6,10 @@
 // spilleren ved sørporten bak den), og `done` løses med `{ skipped }`.
 // Esc, mellomrom eller knappen «Hopp over» hopper over. `gesture` sier om det
 // var et klikk eller mellomrom (en brukerhandling), så musa kan fanges med en gang.
+// Et klikk på linja nederst hopper til det stedet i filmen, og den kan dras.
 
 const FADE = 1.6; // sekunder fra videoens svarte slutt til spillet er framme
+const SEEK_END = 0.5; // sekunder før slutten et hopp høyst går til, så et klikk helt til høyre ikke avslutter filmen
 
 export function createFilm({ src = "film/intro.mp4" } = {}) {
   const root = document.createElement("div");
@@ -24,6 +26,7 @@ export function createFilm({ src = "film/intro.mp4" } = {}) {
 
   const video = root.querySelector("video");
   const loading = root.querySelector(".film-loading");
+  const bar = root.querySelector(".film-progress");
   const fill = root.querySelector(".film-progress-fill");
   const skipBtn = root.querySelector(".film-skip");
 
@@ -76,8 +79,35 @@ export function createFilm({ src = "film/intro.mp4" } = {}) {
     finish(true);
   });
   video.addEventListener("timeupdate", () => {
-    if (video.duration) fill.style.width = `${(100 * video.currentTime) / video.duration}%`;
+    if (video.duration && !seeking) fill.style.width = `${(100 * video.currentTime) / video.duration}%`;
   });
+  // Linja: klikk eller dra for å hoppe i filmen.
+  let seeking = false;
+  function seek(e) {
+    if (!Number.isFinite(video.duration) || finished) return;
+    const box = bar.getBoundingClientRect();
+    const part = Math.min(1, Math.max(0, (e.clientX - box.left) / box.width));
+    const time = Math.min(part * video.duration, Math.max(0, video.duration - SEEK_END));
+    video.currentTime = time;
+    fill.style.width = `${(100 * time) / video.duration}%`;
+  }
+  bar.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    seeking = true;
+    bar.classList.add("seeking");
+    bar.setPointerCapture(e.pointerId);
+    seek(e);
+  });
+  bar.addEventListener("pointermove", (e) => {
+    if (seeking) seek(e);
+  });
+  const release = () => {
+    seeking = false;
+    bar.classList.remove("seeking");
+  };
+  bar.addEventListener("pointerup", release);
+  bar.addEventListener("pointercancel", release);
   const play = video.play();
   if (play?.catch) {
     play.catch((e) => {

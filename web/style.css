@@ -1666,7 +1666,8 @@ body.filming #bars {
   bottom: calc(9vh + 1rem);
   pointer-events: auto;
 }
-/* Venter den siste scenen på spillet, går en tynn linje langs bunnen. */
+/* Linja nederst viser hvor langt filmen er kommet. Et klikk på den hopper dit,
+   og den kan dras; feltet rundt den tynne streken tar også imot klikket. */
 .film-progress {
   position: absolute;
   left: 30%;
@@ -1674,12 +1675,29 @@ body.filming #bars {
   bottom: calc(9vh + 1.4rem);
   height: 2px;
   background: rgba(243, 230, 200, 0.18);
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: none;
+  transition: height 0.15s, margin-bottom 0.15s;
+}
+.film-progress::before {
+  content: "";
+  position: absolute;
+  inset: -12px 0;
+}
+.film-progress:hover,
+.film-progress.seeking {
+  height: 4px;
+  margin-bottom: -1px;
 }
 .film-progress-fill {
   height: 100%;
   width: 0;
   background: rgba(247, 217, 139, 0.85);
   transition: width 0.4s linear;
+}
+.film-progress.seeking .film-progress-fill {
+  transition: none;
 }
 /* Middelalderskriftene til filmen ligger ved spillet (SIL OFL, web/film/fonts/OFL.txt). */
 @font-face {
