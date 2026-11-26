@@ -50,7 +50,7 @@
   ]
  },
  "mekanismer": {
-  "_om": "Byggesettets mekanismer og pynt (`kit_*`) dømmes satt sammen, ikke løse (eieren 19. oktober: bare det han jobber med og det han ser satt sammen). Hvert kort viser tingene i bruk i et rom: i prøvenivået `assets/levels/nivaa_mekanismer.json` (moduler fra gravkjelleren), eller i et gammelt nivå der tingen trenger en kløft, en kanal eller en sjakt (`nivaa` er da tallet). Under bildene står hver ting for seg fra studioet med navnet. Bildene lages av `tools/crypt/mechanism_shots.py`; versjonen av kortet er blobene til modellene (`modeller`), og modellene står ikke som egne kort.",
+  "_om": "Byggesettets mekanismer og pynt (`kit_*`) dømmes satt sammen, ikke løse (eieren 19. oktober: bare det han jobber med og det han ser satt sammen). Hvert kort viser tingene i bruk i et rom: i prøvenivået `assets/levels/nivaa_mekanismer.json` (moduler fra gravkjelleren), eller i et gammelt nivå der tingen trenger en kløft, en kanal eller en sjakt (`nivaa` er da tallet). Under bildene står hver ting for seg fra studioet med navnet. Bildene lages av `tools/crypt/mechanism_shots.py`; versjonen av kortet er blobene til modellene (`modeller`), og modellene står ikke som egne kort. Hver ting har sitt eget kort (eieren 26. november); bare deler som hører til samme ting (spaken til portgitteret, flammen til hvilestedet, kjettingene til vindebroa), står sammen.",
   "kort": [
    {
     "id": "portgitter",
@@ -126,13 +126,12 @@
     ]
    },
    {
-    "id": "feller",
-    "name": "Trykkplater, piler og sprekker",
-    "about": "Trykkplata i gulvet (pilfella; pila er bare i lufta når fella går av, så den står i studioet under) og sprekka som røper en hemmelighet.",
+    "id": "trykkplate",
+    "name": "Trykkplate med pil",
+    "about": "Trykkplata i gulvet som løser ut pilfella. Pila er bare i lufta når fella går av, så den står i studioet under.",
     "modeller": [
      "kit_plate",
-     "kit_arrow",
-     "kit_crack"
+     "kit_arrow"
     ],
     "bilder": [
      {
@@ -144,7 +143,17 @@
       ],
       "yaw": 0,
       "pitch": -60
-     },
+     }
+    ]
+   },
+   {
+    "id": "sprekk",
+    "name": "Sprekk i muren",
+    "about": "Sprekka i muren som røper en hemmelighet bak.",
+    "modeller": [
+     "kit_crack"
+    ],
+    "bilder": [
      {
       "nivaa": "mekanismer",
       "eye": [
@@ -158,14 +167,12 @@
     ]
    },
    {
-    "id": "hvile",
-    "name": "Hvilested, lapper og styrke",
-    "about": "Hvilestedet (flammen tennes når du hviler der første gang), pulten med lappen fra mester Ansgar, styrken som gir varig liv, og en kiste.",
+    "id": "hvilested",
+    "name": "Hvilested",
+    "about": "Hvilestedet. Flammen tennes når du hviler der første gang.",
     "modeller": [
      "kit_rest",
-     "kit_rest_flame",
-     "kit_lore",
-     "kit_bonus"
+     "kit_rest_flame"
     ],
     "bilder": [
      {
@@ -177,7 +184,17 @@
       ],
       "yaw": -90,
       "pitch": -12
-     },
+     }
+    ]
+   },
+   {
+    "id": "lappepult",
+    "name": "Pult med lapp",
+    "about": "Pulten med lappen fra mester Ansgar (til venstre i bildet).",
+    "modeller": [
+     "kit_lore"
+    ],
+    "bilder": [
      {
       "nivaa": "mekanismer",
       "eye": [
@@ -187,29 +204,35 @@
       ],
       "yaw": 151,
       "pitch": -12
-     },
-     {
-      "nivaa": "mekanismer",
-      "eye": [
-       3.4,
-       1.65,
-       -1.6
-      ],
-      "yaw": 0,
-      "pitch": -22
      }
     ]
    },
    {
-    "id": "opp_ned",
-    "name": "Døra opp, trappa ned, stige og fallem",
-    "about": "Døra opp til nivået over, trappa ned med det blå lyset, stigen (biter på 1 m med krokene øverst) og fallemmen i gulvet.",
+    "id": "styrke",
+    "name": "Styrke",
+    "about": "Styrken som gir varig liv (til høyre i bildet).",
     "modeller": [
-     "kit_up",
-     "kit_down",
-     "kit_ladder",
-     "kit_ladder_top",
-     "kit_trapdoor"
+     "kit_bonus"
+    ],
+    "bilder": [
+     {
+      "nivaa": "mekanismer",
+      "eye": [
+       12.5,
+       1.65,
+       -3.5
+      ],
+      "yaw": 151,
+      "pitch": -12
+     }
+    ]
+   },
+   {
+    "id": "dor_opp",
+    "name": "Døra opp",
+    "about": "Døra opp til nivået over.",
+    "modeller": [
+     "kit_up"
     ],
     "bilder": [
      {
@@ -221,7 +244,17 @@
       ],
       "yaw": 180,
       "pitch": 6
-     },
+     }
+    ]
+   },
+   {
+    "id": "trapp_ned",
+    "name": "Trappa ned",
+    "about": "Trappa ned til nivået under, med det blå lyset.",
+    "modeller": [
+     "kit_down"
+    ],
+    "bilder": [
      {
       "nivaa": "mekanismer",
       "eye": [
@@ -231,7 +264,18 @@
       ],
       "yaw": 150,
       "pitch": -45
-     },
+     }
+    ]
+   },
+   {
+    "id": "stige",
+    "name": "Stige",
+    "about": "Stigen på veggen: biter på 1 m med krokene øverst.",
+    "modeller": [
+     "kit_ladder",
+     "kit_ladder_top"
+    ],
+    "bilder": [
      {
       "nivaa": "mekanismer",
       "eye": [
@@ -245,15 +289,32 @@
     ]
    },
    {
-    "id": "bro_vann_heis",
-    "name": "Vindebro, vann og heis",
-    "about": "Vindebroa med kjettingene (heist, slik den står til spaken senker den; Den sunkne borgen), vannet i Hovedkanalen (Kloakken) og heisen med vinsjen over sjakta (Gruva). Bildene er fra de gamle nivåene, som har kløfta, kanalen og sjakta.",
+    "id": "fallem",
+    "name": "Fallem",
+    "about": "Fallemmen i gulvet (nederst i bildet).",
+    "modeller": [
+     "kit_trapdoor"
+    ],
+    "bilder": [
+     {
+      "nivaa": "mekanismer",
+      "eye": [
+       9.5,
+       1.65,
+       -1.2
+      ],
+      "yaw": 30,
+      "pitch": -8
+     }
+    ]
+   },
+   {
+    "id": "vindebro",
+    "name": "Vindebro",
+    "about": "Vindebroa med kjettingene, heist, slik den står til spaken senker den. Bildet er fra det gamle nivået Den sunkne borgen, som har kløfta.",
     "modeller": [
      "kit_bridge",
-     "kit_chain",
-     "kit_water",
-     "kit_lift",
-     "kit_winch"
+     "kit_chain"
     ],
     "bilder": [
      {
@@ -265,7 +326,29 @@
       ],
       "yaw": 180,
       "pitch": 10
-     },
+     }
+    ],
+    "naer": {
+     "kit_bridge": {
+      "nivaa": 7,
+      "eye": [
+       46,
+       0.65,
+       17.5
+      ],
+      "yaw": 180,
+      "pitch": 30
+     }
+    }
+   },
+   {
+    "id": "vann",
+    "name": "Vann",
+    "about": "Vannet i en kanal. Bildet er fra det gamle nivået Kloakken, som har kanalen.",
+    "modeller": [
+     "kit_water"
+    ],
+    "bilder": [
      {
       "nivaa": 3,
       "eye": [
@@ -275,7 +358,30 @@
       ],
       "yaw": -90,
       "pitch": -14
-     },
+     }
+    ],
+    "naer": {
+     "kit_water": {
+      "nivaa": 3,
+      "eye": [
+       20,
+       1.0,
+       24
+      ],
+      "yaw": -90,
+      "pitch": -35
+     }
+    }
+   },
+   {
+    "id": "heis",
+    "name": "Heis med vinsj",
+    "about": "Heisen med vinsjen over sjakta. Bildene er fra det gamle nivået Gruva, som har sjakta.",
+    "modeller": [
+     "kit_lift",
+     "kit_winch"
+    ],
+    "bilder": [
      {
       "nivaa": 5,
       "eye": [
@@ -298,26 +404,6 @@
      }
     ],
     "naer": {
-     "kit_water": {
-      "nivaa": 3,
-      "eye": [
-       20,
-       1.0,
-       24
-      ],
-      "yaw": -90,
-      "pitch": -35
-     },
-     "kit_bridge": {
-      "nivaa": 7,
-      "eye": [
-       46,
-       0.65,
-       17.5
-      ],
-      "yaw": 180,
-      "pitch": 30
-     },
      "kit_lift": {
       "nivaa": 5,
       "eye": [
@@ -566,11 +652,10 @@
    },
    {
     "id": "gruvestiver",
-    "name": "Gruvestiver og gruvelampe",
-    "about": "Tømmerstiveren og lampa som henger på den (gruva).",
+    "name": "Gruvestiver",
+    "about": "Tømmerstiveren (gruva).",
     "modeller": [
-     "kit_strut",
-     "kit_lamp"
+     "kit_strut"
     ],
     "bilder": [
      {
@@ -593,6 +678,26 @@
       "yaw": -153,
       "pitch": 8
      }
+    ]
+   },
+   {
+    "id": "gruvelampe",
+    "name": "Gruvelampe",
+    "about": "Lampa som henger på tømmerstiveren (gruva).",
+    "modeller": [
+     "kit_lamp"
+    ],
+    "bilder": [
+     {
+      "nivaa": "mekanismer",
+      "eye": [
+       -12.0,
+       1.65,
+       1.2
+      ],
+      "yaw": 180,
+      "pitch": 8
+     }
     ],
     "naer": {
      "kit_lamp": {
@@ -608,24 +713,13 @@
     }
    },
    {
-    "id": "malmvogn",
-    "name": "Skinner og malmvogn",
-    "about": "Skinnegangen og malmvogna på den (gruva).",
+    "id": "skinner",
+    "name": "Skinner",
+    "about": "Skinnegangen (gruva).",
     "modeller": [
-     "kit_rail",
-     "kit_cart"
+     "kit_rail"
     ],
     "bilder": [
-     {
-      "nivaa": "mekanismer",
-      "eye": [
-       -10.8,
-       1.9,
-       -1.0
-      ],
-      "yaw": 41,
-      "pitch": -25
-     },
      {
       "nivaa": "mekanismer",
       "eye": [
@@ -649,6 +743,36 @@
       "pitch": -45
      }
     }
+   },
+   {
+    "id": "malmvogn",
+    "name": "Malmvogn",
+    "about": "Malmvogna på skinnene (gruva).",
+    "modeller": [
+     "kit_cart"
+    ],
+    "bilder": [
+     {
+      "nivaa": "mekanismer",
+      "eye": [
+       -10.8,
+       1.9,
+       -1.0
+      ],
+      "yaw": 41,
+      "pitch": -25
+     },
+     {
+      "nivaa": "mekanismer",
+      "eye": [
+       -12.0,
+       2.2,
+       1.4
+      ],
+      "yaw": 0,
+      "pitch": -30
+     }
+    ]
    },
    {
     "id": "krystaller",

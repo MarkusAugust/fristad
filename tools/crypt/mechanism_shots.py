@@ -75,7 +75,7 @@ def studio(name):
 def sheet(card, out):
     """Tittelen, bildene fra nivået (tre per rad) og studiobildene under."""
     ims = [Image.open(os.path.join(OUT, "skudd", f"{card['id']}_{k}.png")).convert("RGB") for k in range(len(card["bilder"]))]
-    per = 3 if len(ims) != 4 else 2
+    per = 2 if len(ims) == 4 else min(3, len(ims))
     w, h = SIZE
     if per == 2:
         w, h = 1208 // 2 - 4, round((1208 // 2 - 4) * SIZE[1] / SIZE[0])
