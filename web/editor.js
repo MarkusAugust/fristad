@@ -23,7 +23,7 @@
 // grenen `redigering`, én commit per økt; uten nøkkel lastes filene ned som
 // zip. Neste gang fortsetter du fra utkastet, eller fra det du lagret sist.
 
-import { catalogItem, esc, historyItems, makePanel, propField } from "./editor-panel.js";
+import { catalogItem, deviation, esc, historyItems, makePanel, propField } from "./editor-panel.js";
 import { createSaving } from "./editor-save.js";
 
 const MARKS = "fristad.edit-marks";
@@ -71,7 +71,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
 
   // Gruppene i katalogen (mappene modellene ligger i).
   // Kategoriene i fast rekkefølge (husene først).
-  const ORDER = ["Hus", "Gjenstander", "Møbler", "Gjerder", "Mur og porter", "Krypten"];
+  const ORDER = ["Hus", "Gjenstander", "Møbler", "Gjerder", "Mur og porter", "Natur"];
   const rank = (g) => (ORDER.indexOf(g) + 1 || 99);
   catalog.sort((a, b) => rank(a.group) - rank(b.group) || a.name.localeCompare(b.name));
   for (const g of [...new Set(catalog.map((m) => m.group))].sort((a, b) => rank(a) - rank(b))) {
@@ -83,12 +83,12 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
 
   function renderCatalog() {
     const q = $("ed-search").value.trim().toLowerCase();
-    const v = $("ed-verdict").value;
+    const odd = $("ed-odd").checked;
     const g = $("ed-group").value;
-    const shown = catalog.filter((m) => (!q || m.name.includes(q)) && (!g || m.group === g) && (!v || (v === "none" ? !m.verdict : m.verdict === v)));
+    const shown = catalog.filter((m) => (!q || m.name.includes(q)) && (!g || m.group === g) && (!odd || deviation(m)));
     $("ed-grid").innerHTML = shown.map((m) => catalogItem(m, placing === m.name)).join("");
   }
-  for (const id of ["ed-search", "ed-verdict", "ed-group"]) $(id).addEventListener("input", renderCatalog);
+  for (const id of ["ed-search", "ed-odd", "ed-group"]) $(id).addEventListener("input", renderCatalog);
   // Et klikk velger modellen å sette ut; et drag tar den rett ut i bildet.
   $("ed-grid").addEventListener("mousedown", (e) => {
     const b = e.target.closest("[data-model]");

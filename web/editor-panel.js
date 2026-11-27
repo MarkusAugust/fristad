@@ -2,7 +2,7 @@
 // hvordan katalogkortene, feltene for egenskapene og historikken tegnes.
 // Tastene, musa og det som sendes til motoren, står i editor.js.
 
-const VERDICTS = { godkjent: "Godkjent", underkjent: "Underkjent", usikker: "Usikker" };
+import { LOCAL } from "./github.js";
 
 export function esc(s) {
   return String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -61,14 +61,12 @@ export function makePanel() {
       <h3 class="lt-heading" data-size="xs">Katalogen</h3>
       <div class="editor-filters">
         <input id="ed-search" class="lt-input" type="search" placeholder="Søk" aria-label="Søk i katalogen">
-        <select id="ed-verdict" class="lt-select" aria-label="Dom">
-          <option value="">Alle</option>
-          <option value="godkjent">Godkjent</option>
-          <option value="underkjent">Underkjent</option>
-          <option value="usikker">Usikker</option>
-          <option value="none">Ikke vurdert</option>
-        </select>
         <select id="ed-group" class="lt-select" aria-label="Kategori"><option value="">Alle kategorier</option></select>
+      </div>
+      <div class="lt-switch-row editor-odd">
+        <input class="lt-switch" type="checkbox" role="switch" id="ed-odd">
+        <label class="lt-label" for="ed-odd">Bare avvik</label>
+        ${LOCAL ? '<a class="lt-link" href="/dom/" target="_blank" rel="noopener">Godkjenningssiden</a>' : ""}
       </div>
       <p id="ed-placing" class="lt-paragraph" data-size="small" hidden></p>
       <div id="ed-grid" class="editor-grid"></div>
@@ -102,12 +100,23 @@ export function makePanel() {
   return panel;
 }
 
+/// Avviket på en modell, eller null: bare det som ikke er godkjent, får
+/// merke (eieren 26. november). En modell som er ny eller endret etter
+/// dommen, venter på dom.
+export function deviation(m) {
+  if (m.waiting) return { text: "Venter på dom", variant: "warning" };
+  if (m.verdict === "underkjent") return { text: "Underkjent", variant: "danger" };
+  if (m.verdict === "usikker") return { text: "Usikker", variant: "warning" };
+  return null;
+}
+
 /// Kortet til en modell i katalogen (`active`: den som er valgt å sette ut).
 export function catalogItem(m, active) {
+  const d = deviation(m);
   return `<button type="button" class="editor-item${active ? " is-active" : ""}" data-model="${esc(m.name)}" title="${esc(m.why || m.name)}">
     <img src="catalog/${esc(m.name)}.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
     <span class="editor-item-name">${esc(m.name)}</span>
-    <span class="lt-badge" data-variant="${m.verdict === "godkjent" ? "success" : m.verdict === "underkjent" ? "danger" : "warning"}">${esc(VERDICTS[m.verdict] ?? "Ikke vurdert")}</span>
+    ${d ? `<span class="lt-badge" data-variant="${d.variant}">${d.text}</span>` : ""}
   </button>`;
 }
 

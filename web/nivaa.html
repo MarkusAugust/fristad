@@ -70,6 +70,16 @@
     .tile .noimg { aspect-ratio: 10 / 7; display: grid; place-items: center; background: repeating-linear-gradient(45deg, #1b1d20 0 8px, #222428 8px 16px); color: var(--muted, #999); font-size: 11px; }
     .tile span { display: block; padding: 3px 5px; font-size: 11.5px; line-height: 1.25; }
     .tile.armed, .chip.armed { outline: 2px solid var(--accent); }
+    .tile { position: relative; }
+    .tile .odd { position: absolute; top: 4px; left: 4px; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-style: normal; font-weight: 600; background: #b7791f; color: #111; }
+    .tile .odd[data-state="underkjent"] { background: #c0392b; color: #fff; }
+    .chip[data-state]::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #d69e2e; }
+    .chip[data-state="underkjent"]::before { background: #e05a4a; }
+    #chippic { position: fixed; z-index: 30; width: 240px; border: 1px solid var(--line); border-radius: 6px; background: #111316; overflow: hidden; pointer-events: none; }
+    #chippic[hidden] { display: none; }
+    #chippic img { display: block; width: 100%; aspect-ratio: 10 / 7; object-fit: cover; background: #222; }
+    #chippic span { display: block; padding: 4px 6px; font-size: 11.5px; }
+    #chippic span:empty { display: none; }
     .chips { display: flex; flex-wrap: wrap; gap: 4px; }
     .chip { border: 1px solid var(--line); border-radius: 999px; background: #111316; color: var(--text); padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer; }
     #search { width: 100%; box-sizing: border-box; }
@@ -101,12 +111,14 @@
   </style>
 </head>
 <body>
+  <div id="chippic" hidden><img alt=""><span></span></div>
   <header>
     <h1>Nivåredigering</h1>
     <div class="group">
       <button id="open" class="lt-button" data-variant="secondary" type="button" title="Åpne et nivå eller lag et nytt">Åpne …</button>
       <span id="docname" class="lt-badge" data-variant="neutral">–</span>
       <span id="docstatus" class="lt-badge" data-variant="warning">Utkast</span>
+      <a id="domlink" class="lt-link" href="/dom/" target="_blank" rel="noopener" title="Eierens dom over modulene og tingene" hidden>Godkjenningssiden</a>
     </div>
     <div class="sep"></div>
     <div class="group">

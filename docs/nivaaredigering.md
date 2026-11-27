@@ -326,7 +326,8 @@ Reglene ligger i kjernen (`domain/world/crypt/check/`) og gjelder både dokument
 | Lys lekker gjennom mur: lysets rekkevidde når celler i eget eller tilkoblet rom uten fri sikt (sikt regnet over cellene). Forslag: kortere rekkevidde, eller del rommet | advarsel | `lyset_folger_rommene` |
 | Høyst 64 rom (`MAX_ROOMS`, `light_mask` er u64), og høyst rundt 40 lys innen synsvidde (`MAX_LIGHTS` 48) | feil / advarsel | ny |
 | Budsjettet: synlige trekanter (anslag), ulike modeller, instanser, kollidere, polygoner og fiender | advarsel | `snapshot --stats` |
-| Biter som ikke er godkjent | advarsel (feil for «klar») | `approvals` |
+| Eierens dom (regelen `dom`, `edit/level/verdicts.rs`, 26. november): en underkjent modul eller ting (også tingene inni modulene) | feil: stopper «klar» | `underkjent_stopper_klar_og_usikkert_advarer` |
+| Usikker modul eller ting, og det som venter på dom (nytt, eller endret etter dommen: `assets/catalog/venter.json`) | advarsel | samme |
 | Tom lapp, ukjent komponent i kista, sjelden komponent to ganger | feil | ny |
 | Vann som stenger hovedveien uten at slusa kan nås først | feil | løseren |
 

@@ -161,6 +161,52 @@ pub fn approved() -> std::collections::HashSet<String> {
     json["models"].as_object().map(|m| m.iter().filter(|(_, v)| v["verdict"] == "godkjent").map(|(k, _)| k.clone()).collect()).unwrap_or_default()
 }
 
+/// Det som venter på eierens dom (`assets/catalog/venter.json`, skrevet av
+/// `python3 -m tools.qa approvals venter`): nytt, eller endret etter dommen.
+pub const WAITING: &str = include_str!("../../assets/catalog/venter.json");
+
+/// Navnene som venter på dom i `group` (`models` eller `modules`).
+pub fn waiting(group: &str) -> std::collections::HashSet<String> {
+    let json: serde_json::Value = serde_json::from_str(WAITING).expect("venter.json");
+    json[group].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect()).unwrap_or_default()
+}
+
+/// Eierens avvik til nivåredigeringen (`edit::level::verdicts`): modulene
+/// (`modules` i approvals.json, `<tema>_<navn>`), tingene gjennom kortene
+/// sine (`THING_CARDS`) og fiendene gjennom modellene. Godkjent og uendret
+/// står ikke i lista; uten dom, eller endret etter dommen, venter.
+pub fn level_verdicts(kit: &crate::domain::world::crypt::kit::KitDef) -> crate::domain::edit::level::verdicts::Verdicts {
+    use crate::domain::edit::level::verdicts::{Verdict, Verdicts, THING_CARDS};
+    let json: serde_json::Value = serde_json::from_str(APPROVALS).expect("approvals.json");
+    let odd = |group: &str, name: &str| -> Option<Verdict> {
+        let e = &json[group][name];
+        let state = match e["verdict"].as_str() {
+            _ if waiting(group).contains(name) => "venter",
+            Some("godkjent") => return None,
+            Some(v @ ("underkjent" | "usikker")) => v,
+            _ => "venter",
+        };
+        Some(Verdict { state: state.into(), why: if state == "venter" { String::new() } else { e["why"].as_str().unwrap_or_default().into() } })
+    };
+    let mut out = Verdicts::default();
+    for m in &kit.modules {
+        if let Some(v) = odd("modules", &m.id.replace('/', "_")) {
+            out.modules.insert(m.id.clone(), v);
+        }
+    }
+    for (kind, card) in THING_CARDS {
+        if let Some(v) = odd("modules", card) {
+            out.things.insert(kind.to_string(), v);
+        }
+    }
+    for k in crate::domain::mob_kind::Kind::ALL {
+        if let Some(v) = odd("models", k.model()) {
+            out.things.insert(format!("mob:{}", k.key()), v);
+        }
+    }
+    out
+}
+
 /// Tallene rundet til 0,01 mm (heltall uten desimaler), og skala 1 utelatt.
 fn round(v: &mut serde_json::Value) {
     use serde_json::Value;
@@ -318,13 +364,19 @@ pub fn layout_file() -> Option<&'static str> {
 }
 
 /// Kategoriene i katalogen i redigeringen, i den rekkefølgen de vises.
-pub const CATEGORIES: [&str; 6] = ["Hus", "Gjenstander", "Møbler", "Gjerder", "Mur og porter", "Krypten"];
+pub const CATEGORIES: [&str; 6] = ["Hus", "Gjenstander", "Møbler", "Gjerder", "Mur og porter", "Natur"];
+
+/// Mappene under `assets/models/` som ikke står i katalogen (eieren 26.
+/// november): de løse bitene og mekanismene i krypten dømmes og settes ut
+/// gjennom modulene i `?nivaa`, og armene, fiendene og innbyggerne settes
+/// ikke ut som ting.
+const HIDDEN_FOLDERS: [&str; 4] = ["crypt/", "arms/", "mobs/", "npcs/"];
 
 /// Kategorien til en modell i katalogen (`path` er stien under
 /// `assets/models/`, `buildings` modellene som står som hus i byen), eller
 /// `None` for det som ikke kan settes ut alene: delene spillet beveger
 /// (lokket, vinda, portalen, spaken), platene i galleriet, innsidene av
-/// husene og bitene av kryptnivåene.
+/// husene og mappene i `HIDDEN_FOLDERS`.
 pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<String>) -> Option<&'static str> {
     let moving = ["chest_lid", "well_winch", "well_rope", "well_bucket", "kit_lever_arm", "kit_shortcut_leaf"];
     if name.ends_with("_interior")
@@ -332,7 +384,7 @@ pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<St
         || name.starts_with("portal_")
         || moving.contains(&name)
         || crate::domain::world::nature::COMPANIONS.contains(&name)
-        || (name.starts_with("crypt_") && name[6..].starts_with(|c: char| c.is_ascii_digit()))
+        || HIDDEN_FOLDERS.iter().any(|f| path.starts_with(f))
     {
         return None;
     }
@@ -345,8 +397,6 @@ pub fn category(name: &str, path: &str, buildings: &std::collections::HashSet<St
         "Gjerder"
     } else if path.starts_with("furniture/") {
         "Møbler"
-    } else if path.starts_with("crypt/") {
-        "Krypten"
     } else if path.starts_with("nature/") {
         "Natur"
     } else {

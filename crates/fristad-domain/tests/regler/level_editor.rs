@@ -341,3 +341,41 @@ fn utvalget_tar_med_slaget_paa_kanten() {
     assert!(e.file().marks.iter().any(|m| m.kind == "lever" && m.opens.contains(&id)), "spaken åpner porten");
     assert_eq!(errors(&e).len(), errs.len(), "de samme bruddene som før: {:?}", errors(&e));
 }
+
+/// Eierens dom ved «klar» (eieren 26. november): en underkjent modul eller
+/// ting stopper, usikkert og det som venter på dom advarer, og et utkast
+/// kan bruke alt.
+#[test]
+fn underkjent_stopper_klar_og_usikkert_advarer() {
+    use crate::domain::edit::level::verdicts::{Verdict, Verdicts};
+    let odd = |state: &str, why: &str| Verdict { state: state.into(), why: why.into() };
+    let module = blank().doc().modules[0].module.clone();
+    let klar = |e: &mut LevelEditor| {
+        let mut head = e.head();
+        head.status = "klar".into();
+        e.apply(LevelOp::SetHead { head })
+    };
+    let dom = |e: &LevelEditor| e.issues().iter().filter(|i| i.rule == "dom").map(|i| (i.severity == Severity::Error, i.msg.clone())).collect::<Vec<_>>();
+
+    // Uten avvik: ingen melding om dommen.
+    assert!(dom(&blank()).is_empty());
+
+    // Usikker modul og en ting som venter: advarsler, ikke feil.
+    let mut v = Verdicts::default();
+    v.modules.insert(module.clone(), odd("usikker", "for mørk"));
+    v.things.insert("start".into(), odd("venter", ""));
+    let e = blank().with_verdicts(v);
+    let found = dom(&e);
+    assert!(found.iter().all(|(error, _)| !error), "{found:?}");
+    assert!(found.iter().any(|(_, m)| m.contains("er usikker: for mørk")), "{found:?}");
+    assert!(found.iter().any(|(_, m)| m.contains("venter på dom")), "{found:?}");
+
+    // Underkjent modul: en feil med eierens grunn, og nivået kan ikke merkes klart.
+    let mut v = Verdicts::default();
+    v.modules.insert(module, odd("underkjent", "feil stein"));
+    let mut e = blank().with_verdicts(v);
+    assert!(dom(&e).iter().any(|(error, m)| *error && m.contains("er underkjent: feil stein")), "{:?}", dom(&e));
+    assert!(!e.clean());
+    assert!(klar(&mut e).is_err(), "et nivå med en underkjent modul ble merket klart");
+    assert_eq!(e.doc().status, "utkast");
+}

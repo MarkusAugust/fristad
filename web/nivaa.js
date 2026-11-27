@@ -7,6 +7,7 @@
 // laster ned en zip, og «Spill» bygger verden med nivået og lar deg gå
 // gjennom det uten å kunne dø (Esc tilbake).
 
+import { LOCAL } from "./github.js";
 import init, { asset_paths, level_blank, level_palette, model_paths, model_url, start_level_editor } from "./pkg/fristad.js";
 import { bind3d } from "./nivaa-3d.js";
 import { copy, docHead, onShow, paste, placeModule, refresh, select, send, turnSelection } from "./nivaa-doc.js";
@@ -118,6 +119,7 @@ async function boot() {
   progress("Laster motoren …", 0);
   await init();
   setPalette(JSON.parse(level_palette()));
+  $("domlink").hidden = !LOCAL;
   buildPalette();
   loadTemplates();
   const assets = await loadAssets();

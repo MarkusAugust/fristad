@@ -11,6 +11,7 @@
 pub mod fixes;
 pub mod map;
 pub mod rules;
+pub mod verdicts;
 mod op;
 mod templates;
 pub use op::LevelOp;
@@ -119,6 +120,8 @@ pub struct LevelEditor {
     issues: Vec<Issue>,
     /// Rettingen for hvert brudd (`fixes::suggest`).
     fixes: Vec<Option<fixes::Fix>>,
+    /// Eierens avvik (`verdicts`): tom utenom redigeringen på nettet.
+    verdicts: verdicts::Verdicts,
     undo: Vec<Vec<Change>>,
     redo: Vec<Vec<Change>>,
     /// Endringer siden sist lagret.
@@ -127,10 +130,18 @@ pub struct LevelEditor {
 
 impl LevelEditor {
     pub fn new(doc: LevelDoc, kit: KitDef) -> Self {
-        let mut e =
-            LevelEditor { doc, kit, compiler: Compiler::default(), file: LevelFile::default(), report: Report::default(), issues: vec![], fixes: vec![], undo: vec![], redo: vec![], unsaved: 0 };
+        let (file, report, verdicts) = (LevelFile::default(), Report::default(), verdicts::Verdicts::default());
+        let mut e = LevelEditor { doc, kit, compiler: Compiler::default(), file, report, issues: vec![], fixes: vec![], verdicts, undo: vec![], redo: vec![], unsaved: 0 };
         e.rebuild();
         e
+    }
+
+    /// Med eierens avvik (`verdicts::check`): det som er underkjent, stopper
+    /// «klar».
+    pub fn with_verdicts(mut self, verdicts: verdicts::Verdicts) -> Self {
+        self.verdicts = verdicts;
+        self.rebuild();
+        self
     }
 
     /// Et nytt, tomt nivå: kapellet med døra opp og startstedet, så det
@@ -196,6 +207,7 @@ impl LevelEditor {
         issues.extend(compose::check::overlaps(&self.doc, &self.kit));
         issues.extend(compose::check::tight(&self.doc, &self.kit, &file));
         issues.extend(rules::check(&self.doc, &self.kit, &file, &report));
+        issues.extend(verdicts::check(&self.doc, &self.kit, &self.verdicts));
         // Det samme bruddet fra to regler meldes én gang.
         let mut seen = std::collections::HashSet::new();
         issues.retain(|i| seen.insert((i.rule, i.msg.clone())));
