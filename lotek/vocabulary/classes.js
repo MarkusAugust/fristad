@@ -1,0 +1,1320 @@
+export const classes = {
+    "lt-accordion": {
+        "component": "accordion",
+        "title": "Accordion",
+        "description": "A panel that can be expanded, built on details and summary. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/accordion/",
+        "content": "parts",
+        "parts": {
+            "summary": {
+                "selector": "summary",
+                "description": "The heading the user presses to open and close. An `<h2>` to `<h6>` inside gives it a level in the document.",
+                "content": "free"
+            },
+            "content": {
+                "selector": ".lt-accordion__content",
+                "description": "The content shown when the panel is open.",
+                "content": "free"
+            }
+        },
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "plain"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-accordion__content": {
+        "component": "accordion",
+        "title": "Accordion",
+        "description": "A panel that can be expanded, built on details and summary. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/accordion/",
+        "content": "free",
+        "partOf": "lt-accordion",
+        "attributes": {}
+    },
+    "lt-alert": {
+        "component": "alert",
+        "title": "Alert",
+        "description": "A message about the whole page or the whole form. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/alert/",
+        "content": "free",
+        "parts": {
+            "title": {
+                "selector": ".lt-alert__title",
+                "description": "The heading in the message.",
+                "content": "text",
+                "optional": true
+            }
+        },
+        "attributes": {
+            "data-color": {
+                "values": [
+                    "info",
+                    "success",
+                    "warning",
+                    "danger"
+                ]
+            }
+        }
+    },
+    "lt-alert__title": {
+        "component": "alert",
+        "title": "Alert",
+        "description": "A message about the whole page or the whole form. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/alert/",
+        "content": "text",
+        "partOf": "lt-alert",
+        "attributes": {}
+    },
+    "lt-avatar": {
+        "component": "avatar",
+        "title": "Avatar",
+        "description": "Profile picture or initials. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/avatar/",
+        "content": "free",
+        "parts": {
+            "image": {
+                "selector": "img",
+                "description": "The image, with the name in `alt`. Without an image the initials are text, and the element has `aria-hidden` when the name is next to it.",
+                "content": "none",
+                "optional": true
+            }
+        },
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "square"
+                ],
+                "default": "circle"
+            },
+            "data-size": {
+                "values": [
+                    "small",
+                    "large"
+                ],
+                "default": "medium"
+            }
+        }
+    },
+    "lt-avatar-stack": {
+        "component": "avatar",
+        "title": "Avatar",
+        "description": "Profile picture or initials. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/avatar/",
+        "content": "parts",
+        "parts": {
+            "item": {
+                "selector": "li",
+                "description": "One list item per person.",
+                "content": "parts",
+                "multiple": true
+            },
+            "avatar": {
+                "selector": "li > .lt-avatar",
+                "description": "The avatar in each list item.",
+                "content": "free",
+                "multiple": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-badge": {
+        "component": "badge",
+        "title": "Badge",
+        "description": "Compact status badge. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/badge/",
+        "content": "text",
+        "attributes": {
+            "data-color": {
+                "values": [
+                    "success",
+                    "warning",
+                    "danger",
+                    "neutral"
+                ],
+                "default": "info"
+            }
+        }
+    },
+    "lt-breadcrumbs": {
+        "component": "breadcrumbs",
+        "title": "Breadcrumbs",
+        "description": "A breadcrumb trail that shows where on the site the user is. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/breadcrumbs/",
+        "content": "parts",
+        "parts": {
+            "item": {
+                "selector": "li",
+                "description": "One step in the trail.",
+                "content": "parts",
+                "multiple": true
+            },
+            "link": {
+                "selector": "li > a",
+                "description": "The link to the step. The last one, the page the reader is on, has `aria-current=\"page\"`.",
+                "content": "text",
+                "multiple": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-button": {
+        "component": "button",
+        "title": "Button",
+        "description": "A button for actions. CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/button/",
+        "content": "text",
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "secondary",
+                    "ghost",
+                    "danger"
+                ],
+                "default": "primary"
+            }
+        }
+    },
+    "lt-card": {
+        "component": "card",
+        "title": "Card",
+        "description": "A box that groups content that belongs together. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/card/",
+        "content": "free",
+        "parts": {
+            "title": {
+                "selector": ".lt-card__title",
+                "description": "The heading in the card.",
+                "content": "text",
+                "optional": true
+            }
+        },
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "filled"
+                ],
+                "default": "outline"
+            },
+            "data-interactive": {
+                "values": [],
+                "flag": true
+            }
+        }
+    },
+    "lt-card__title": {
+        "component": "card",
+        "title": "Card",
+        "description": "A box that groups content that belongs together. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/card/",
+        "content": "text",
+        "partOf": "lt-card",
+        "attributes": {}
+    },
+    "lt-checkbox": {
+        "component": "checkbox",
+        "title": "Checkbox",
+        "description": "A checkbox for a choice that stands on its own. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/checkbox/",
+        "content": "none",
+        "attributes": {
+            "data-state": {
+                "values": [
+                    "invalid",
+                    "success"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-checkbox-row": {
+        "component": "checkbox",
+        "title": "Checkbox",
+        "description": "A checkbox for a choice that stands on its own. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/checkbox/",
+        "content": "parts",
+        "parts": {
+            "control": {
+                "selector": "input[type='checkbox']",
+                "description": "The checkbox, with its class.",
+                "content": "none",
+                "unique": true
+            },
+            "label": {
+                "selector": "label",
+                "description": "The label, wired to the control with `for`.",
+                "content": "text"
+            }
+        },
+        "attributes": {}
+    },
+    "lt-divider": {
+        "component": "divider",
+        "title": "Divider",
+        "description": "A line between parts of the content. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/divider/",
+        "content": "none",
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "subtle",
+                    "strong"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-error-text": {
+        "component": "error-text",
+        "title": "Error Text",
+        "description": "Error message below a form field. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/error-text/",
+        "content": "text",
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "warning"
+                ],
+                "default": "error"
+            }
+        }
+    },
+    "lt-fieldset": {
+        "component": "fieldset",
+        "title": "Fieldset",
+        "description": "A group of controls with a shared label. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/fieldset/",
+        "content": "free",
+        "parts": {
+            "legend": {
+                "selector": "> .lt-legend",
+                "description": "The label of the group, a `<legend>` with the class.",
+                "content": "text",
+                "unique": true
+            },
+            "help": {
+                "selector": ".lt-help-text",
+                "description": "The help text of the group, wired with `aria-describedby` on the fieldset.",
+                "content": "text",
+                "optional": true
+            },
+            "error": {
+                "selector": ".lt-error-text",
+                "description": "The error text of the group, wired with `aria-describedby` on the fieldset.",
+                "content": "text",
+                "optional": true
+            }
+        },
+        "attributes": {
+            "data-state": {
+                "values": [
+                    "invalid",
+                    "success"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-legend": {
+        "component": "fieldset",
+        "title": "Fieldset",
+        "description": "A group of controls with a shared label. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/fieldset/",
+        "content": "text",
+        "partOf": "lt-fieldset",
+        "attributes": {
+            "data-required": {
+                "values": [
+                    "symbol",
+                    "text"
+                ]
+            },
+            "data-optional": {
+                "values": [],
+                "flag": true
+            }
+        }
+    },
+    "lt-file-upload": {
+        "component": "file-upload",
+        "title": "File Upload",
+        "description": "A field for uploading files. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/file-upload/",
+        "content": "none",
+        "attributes": {
+            "data-state": {
+                "values": [
+                    "invalid",
+                    "success"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-file-upload-list": {
+        "component": "file-upload",
+        "title": "File Upload",
+        "description": "A field for uploading files. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/file-upload/",
+        "content": "parts",
+        "parts": {
+            "item": {
+                "selector": "li",
+                "description": "One chosen file, with its name.",
+                "content": "free",
+                "multiple": true
+            },
+            "remove": {
+                "selector": "li > button",
+                "description": "The button that removes the file, with the file name in its text.",
+                "content": "text",
+                "multiple": true,
+                "optional": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-heading": {
+        "component": "heading",
+        "title": "Heading",
+        "description": "Headings in six sizes, independent of level. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/heading/",
+        "content": "text",
+        "attributes": {
+            "data-size": {
+                "values": [
+                    "xs",
+                    "s",
+                    "m",
+                    "xl",
+                    "mega"
+                ],
+                "default": "l"
+            }
+        }
+    },
+    "lt-help-text": {
+        "component": "help-text",
+        "title": "Help Text",
+        "description": "Explanatory text below a form field. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/help-text/",
+        "content": "text",
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "strong",
+                    "success",
+                    "warning"
+                ],
+                "default": "muted"
+            }
+        }
+    },
+    "lt-icon": {
+        "component": "icon",
+        "title": "Icon",
+        "description": "An icon from the app's own set, as large as the text around it. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/icon/",
+        "content": "none",
+        "attributes": {}
+    },
+    "lt-input": {
+        "component": "input",
+        "title": "Input",
+        "description": "A text field for forms, with states for valid and invalid. CSS component.",
+        "link": "https://lo-tek.sobernetics.no/components/input/",
+        "content": "none",
+        "attributes": {
+            "data-state": {
+                "values": [
+                    "invalid",
+                    "success"
+                ],
+                "default": "default"
+            },
+            "data-variant": {
+                "values": [
+                    "date",
+                    "datetime-local",
+                    "time"
+                ]
+            }
+        }
+    },
+    "lt-label": {
+        "component": "label",
+        "title": "Label",
+        "description": "A label for form fields, with marking of required and optional. A CSS component.",
+        "link": "https://lo-tek.sobernetics.no/components/label/",
+        "content": "text",
+        "attributes": {
+            "data-required": {
+                "values": [
+                    "symbol",
+                    "text"
+                ]
+            },
+            "data-optional": {
+                "values": [],
+                "flag": true
+            }
+        }
+    },
+    "lt-link": {
+        "component": "link",
+        "title": "Link",
+        "description": "Link style for navigation in running text. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/link/",
+        "content": "text",
+        "attributes": {}
+    },
+    "lt-list": {
+        "component": "list",
+        "title": "List",
+        "description": "Bulleted lists, numbered lists and lists without bullets. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/list/",
+        "content": "parts",
+        "parts": {
+            "item": {
+                "selector": "li",
+                "description": "One item in the list.",
+                "content": "free",
+                "multiple": true
+            }
+        },
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "plain",
+                    "divided"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-pagination": {
+        "component": "pagination",
+        "title": "Pagination",
+        "description": "Page navigation for long lists. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/pagination/",
+        "content": "parts",
+        "parts": {
+            "item": {
+                "selector": "li",
+                "description": "One list item per page, arrow and gap.",
+                "content": "parts",
+                "multiple": true
+            },
+            "link": {
+                "selector": "li > a, li > button",
+                "description": "The link or button to a page, with the page number as text and an `aria-label` that says what it is. The current one has `aria-current=\"page\"`.",
+                "content": "text",
+                "multiple": true
+            },
+            "gap": {
+                "selector": ".lt-pagination__gap",
+                "description": "The gap where pages are left out.",
+                "content": "text",
+                "multiple": true,
+                "optional": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-pagination__gap": {
+        "component": "pagination",
+        "title": "Pagination",
+        "description": "Page navigation for long lists. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/pagination/",
+        "content": "text",
+        "partOf": "lt-pagination",
+        "attributes": {}
+    },
+    "lt-paragraph": {
+        "component": "paragraph",
+        "title": "Paragraph",
+        "description": "Body text and lead paragraphs with a limited line length. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/paragraph/",
+        "content": "text",
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "lead"
+                ],
+                "default": "default"
+            },
+            "data-size": {
+                "values": [
+                    "small",
+                    "large"
+                ],
+                "default": "medium"
+            }
+        }
+    },
+    "lt-progress": {
+        "component": "progress",
+        "title": "Progress",
+        "description": "A progress bar for something that has an end. CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/progress/",
+        "content": "none",
+        "attributes": {
+            "data-color": {
+                "values": [
+                    "success",
+                    "warning",
+                    "danger"
+                ]
+            }
+        }
+    },
+    "lt-radio": {
+        "component": "radio",
+        "title": "Radio",
+        "description": "Radio buttons for one choice among several. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/radio/",
+        "content": "none",
+        "attributes": {
+            "data-state": {
+                "values": [
+                    "invalid",
+                    "success"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-radio-row": {
+        "component": "radio",
+        "title": "Radio",
+        "description": "Radio buttons for one choice among several. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/radio/",
+        "content": "parts",
+        "parts": {
+            "control": {
+                "selector": "input[type='radio']",
+                "description": "The radio button, with its class.",
+                "content": "none",
+                "unique": true
+            },
+            "label": {
+                "selector": "label",
+                "description": "The label, wired to the control with `for`.",
+                "content": "text"
+            }
+        },
+        "attributes": {}
+    },
+    "lt-search": {
+        "component": "search",
+        "title": "Search",
+        "description": "A search field with a magnifying glass. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/search/",
+        "content": "none",
+        "attributes": {
+            "data-state": {
+                "values": [
+                    "invalid",
+                    "success"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-search-row": {
+        "component": "search",
+        "title": "Search",
+        "description": "A search field with a magnifying glass. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/search/",
+        "content": "parts",
+        "parts": {
+            "label": {
+                "selector": "label",
+                "description": "The label, wired with `for`. Often hidden with `lt-sr-only`.",
+                "content": "text"
+            },
+            "control": {
+                "selector": "input[type='search']",
+                "description": "The search field, with the classes `lt-input lt-search`.",
+                "content": "none",
+                "unique": true
+            },
+            "button": {
+                "selector": "button",
+                "description": "The search button.",
+                "content": "text",
+                "optional": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-select": {
+        "component": "select",
+        "title": "Select",
+        "description": "A dropdown list. CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/select/",
+        "content": "none",
+        "attributes": {
+            "data-state": {
+                "values": [
+                    "invalid",
+                    "success"
+                ],
+                "default": "default"
+            },
+            "data-picker": {
+                "values": [
+                    "styled"
+                ],
+                "default": "auto"
+            }
+        }
+    },
+    "lt-skeleton": {
+        "component": "skeleton",
+        "title": "Skeleton",
+        "description": "A placeholder that shows the shape of content being loaded. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/skeleton/",
+        "content": "none",
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "text",
+                    "circle"
+                ],
+                "default": "block"
+            }
+        }
+    },
+    "lt-skip-link": {
+        "component": "skip-link",
+        "title": "Skip Link",
+        "description": "A link that skips past the menu to the main content. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/skip-link/",
+        "content": "text",
+        "attributes": {}
+    },
+    "lt-spinner": {
+        "component": "spinner",
+        "title": "Spinner",
+        "description": "A wait indicator for something in progress. CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/spinner/",
+        "content": "none",
+        "attributes": {
+            "data-size": {
+                "values": [
+                    "small",
+                    "large"
+                ],
+                "default": "medium"
+            }
+        }
+    },
+    "lt-sr-only": {
+        "component": "sr-only",
+        "title": "Sr Only",
+        "description": "Text only screen readers get. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/sr-only/",
+        "content": "text",
+        "attributes": {}
+    },
+    "lt-switch": {
+        "component": "switch",
+        "title": "Switch",
+        "description": "A switch for a setting that takes effect immediately. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/switch/",
+        "content": "none",
+        "attributes": {}
+    },
+    "lt-switch-row": {
+        "component": "switch",
+        "title": "Switch",
+        "description": "A switch for a setting that takes effect immediately. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/switch/",
+        "content": "parts",
+        "parts": {
+            "control": {
+                "selector": "input[role='switch']",
+                "description": "The switch, with its class.",
+                "content": "none",
+                "unique": true
+            },
+            "label": {
+                "selector": "label",
+                "description": "The label, wired to the control with `for`.",
+                "content": "text"
+            }
+        },
+        "attributes": {}
+    },
+    "lt-table": {
+        "component": "table",
+        "title": "Table",
+        "description": "A table for data in rows and columns. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/table/",
+        "content": "parts",
+        "parts": {
+            "caption": {
+                "selector": "> caption",
+                "description": "The name of the table.",
+                "content": "text",
+                "unique": true,
+                "optional": true
+            },
+            "head": {
+                "selector": "> thead",
+                "description": "The header row, with a `<th scope=\"col\">` per column.",
+                "content": "free",
+                "unique": true
+            },
+            "body": {
+                "selector": "tbody",
+                "description": "The rows, in one or more groups. A `<th scope=\"row\">` first in the row gives the row a name.",
+                "content": "free",
+                "multiple": true
+            },
+            "sort": {
+                "selector": "th > .lt-table__sort",
+                "description": "The button in a sortable header. `aria-sort` on the cell says which way.",
+                "content": "text",
+                "multiple": true,
+                "optional": true
+            }
+        },
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "striped"
+                ],
+                "default": "default"
+            },
+            "data-hoverable": {
+                "values": [],
+                "flag": true
+            }
+        }
+    },
+    "lt-table__sort": {
+        "component": "table",
+        "title": "Table",
+        "description": "A table for data in rows and columns. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/table/",
+        "content": "text",
+        "partOf": "lt-table",
+        "attributes": {}
+    },
+    "lt-table-scroll": {
+        "component": "table",
+        "title": "Table",
+        "description": "A table for data in rows and columns. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/table/",
+        "content": "parts",
+        "parts": {
+            "table": {
+                "selector": ".lt-table",
+                "description": "The table that can be scrolled sideways.",
+                "content": "free"
+            }
+        },
+        "attributes": {}
+    },
+    "lt-tag": {
+        "component": "tag",
+        "title": "Tag",
+        "description": "A tag for topics and filters. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/tag/",
+        "content": "text",
+        "attributes": {
+            "data-variant": {
+                "values": [
+                    "filled"
+                ],
+                "default": "outline"
+            },
+            "data-selectable": {
+                "values": [],
+                "flag": true
+            }
+        }
+    },
+    "lt-textarea": {
+        "component": "textarea",
+        "title": "Textarea",
+        "description": "A multi-line text field. A CSS component with one class and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/textarea/",
+        "content": "none",
+        "attributes": {
+            "data-state": {
+                "values": [
+                    "invalid",
+                    "success"
+                ],
+                "default": "default"
+            }
+        }
+    },
+    "lt-toggle-group": {
+        "component": "toggle-group",
+        "title": "Toggle Group",
+        "description": "A group where one option is selected at a time. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/toggle-group/",
+        "content": "parts",
+        "parts": {
+            "legend": {
+                "selector": "> legend",
+                "description": "What the options choose between. Can be hidden with `lt-sr-only`, but must be there.",
+                "content": "text",
+                "unique": true
+            },
+            "option": {
+                "selector": ".lt-toggle-group__option",
+                "description": "One option: a `<label>` with the radio button and the text.",
+                "content": "free",
+                "multiple": true
+            },
+            "radio": {
+                "selector": ".lt-toggle-group__option > input[type='radio']",
+                "description": "The radio button in each option, with the same `name`.",
+                "content": "none",
+                "multiple": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-toggle-group__option": {
+        "component": "toggle-group",
+        "title": "Toggle Group",
+        "description": "A group where one option is selected at a time. A CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/toggle-group/",
+        "content": "free",
+        "partOf": "lt-toggle-group",
+        "attributes": {}
+    },
+    "lt-tooltip": {
+        "component": "tooltip",
+        "title": "Tooltip",
+        "description": "A small help text shown on hover and focus. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/tooltip/",
+        "content": "parts",
+        "parts": {
+            "trigger": {
+                "selector": "[aria-describedby]",
+                "description": "The element the bubble describes, with `aria-describedby` pointing at the bubble's id.",
+                "content": "text"
+            },
+            "bubble": {
+                "selector": ".lt-tooltip__bubble",
+                "description": "The bubble, with `role=\"tooltip\"` and the id.",
+                "content": "text"
+            }
+        },
+        "attributes": {}
+    },
+    "lt-tooltip__bubble": {
+        "component": "tooltip",
+        "title": "Tooltip",
+        "description": "A small help text shown on hover and focus. CSS component with two classes and no JavaScript.",
+        "link": "https://lo-tek.sobernetics.no/components/tooltip/",
+        "content": "text",
+        "partOf": "lt-tooltip",
+        "attributes": {}
+    },
+    "lt-dialog": {
+        "component": "dialog",
+        "title": "Dialog",
+        "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+        "link": "https://lo-tek.sobernetics.no/components/dialog/",
+        "content": "free",
+        "parts": {
+            "header": {
+                "selector": ".lt-dialog__header",
+                "description": "The header, with the heading and the subtitle. `data-color` on the dialog colours it.",
+                "content": "parts",
+                "optional": true
+            },
+            "title": {
+                "selector": ".lt-dialog__title",
+                "description": "The heading, which `aria-labelledby` points to.",
+                "content": "text",
+                "optional": true
+            },
+            "subtitle": {
+                "selector": ".lt-dialog__subtitle",
+                "description": "The line below the heading, inside the header.",
+                "content": "text",
+                "optional": true
+            },
+            "body": {
+                "selector": ".lt-dialog__body",
+                "description": "The content, which scrolls when the dialog gets too tall. Must be a direct child.",
+                "content": "free",
+                "optional": true
+            },
+            "footer": {
+                "selector": ".lt-dialog__footer",
+                "description": "The row of buttons at the bottom, often a `<form method=\"dialog\">`.",
+                "content": "free",
+                "optional": true
+            }
+        },
+        "attributes": {
+            "data-color": {
+                "values": [
+                    "brand",
+                    "info",
+                    "success",
+                    "warning",
+                    "danger"
+                ],
+                "default": "neutral"
+            }
+        }
+    },
+    "lt-dialog__body": {
+        "component": "dialog",
+        "title": "Dialog",
+        "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+        "link": "https://lo-tek.sobernetics.no/components/dialog/",
+        "content": "free",
+        "partOf": "lt-dialog",
+        "attributes": {}
+    },
+    "lt-dialog__title": {
+        "component": "dialog",
+        "title": "Dialog",
+        "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+        "link": "https://lo-tek.sobernetics.no/components/dialog/",
+        "content": "text",
+        "partOf": "lt-dialog",
+        "attributes": {}
+    },
+    "lt-dialog__footer": {
+        "component": "dialog",
+        "title": "Dialog",
+        "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+        "link": "https://lo-tek.sobernetics.no/components/dialog/",
+        "content": "free",
+        "partOf": "lt-dialog",
+        "attributes": {}
+    },
+    "lt-dialog__header": {
+        "component": "dialog",
+        "title": "Dialog",
+        "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+        "link": "https://lo-tek.sobernetics.no/components/dialog/",
+        "content": "parts",
+        "partOf": "lt-dialog",
+        "parts": {
+            "title": {
+                "selector": ".lt-dialog__title",
+                "description": "The heading.",
+                "content": "text"
+            },
+            "subtitle": {
+                "selector": ".lt-dialog__subtitle",
+                "description": "The line below the heading.",
+                "content": "text",
+                "optional": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-dialog__subtitle": {
+        "component": "dialog",
+        "title": "Dialog",
+        "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+        "link": "https://lo-tek.sobernetics.no/components/dialog/",
+        "content": "text",
+        "partOf": "lt-dialog",
+        "attributes": {}
+    },
+    "lt-error-summary": {
+        "component": "error-summary",
+        "title": "Error Summary",
+        "description": "Collects the errors in a form and takes the user to the field that failed. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/error-summary/",
+        "content": "parts",
+        "parts": {
+            "title": {
+                "selector": ".lt-error-summary__title",
+                "description": "The heading, which says how many errors the form has.",
+                "content": "text"
+            },
+            "list": {
+                "selector": "ul",
+                "description": "The list with one link per error.",
+                "content": "parts"
+            },
+            "link": {
+                "selector": "li a[href^='#']",
+                "description": "The link to a field with an error, with the error message as text and the field's id after `#`.",
+                "content": "text",
+                "multiple": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-error-summary__title": {
+        "component": "error-summary",
+        "title": "Error Summary",
+        "description": "Collects the errors in a form and takes the user to the field that failed. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/error-summary/",
+        "content": "text",
+        "partOf": "lt-error-summary",
+        "attributes": {}
+    },
+    "lt-popover": {
+        "component": "popover",
+        "title": "Popover",
+        "description": "Panel that hangs below a button and closes itself. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/popover/",
+        "content": "free",
+        "attributes": {}
+    },
+    "lt-session-timeout": {
+        "component": "session-timeout",
+        "title": "Session Timeout",
+        "description": "Warns before a logged-in session expires, and counts down. You write the dialog, the component keeps the time.",
+        "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
+        "content": "parts",
+        "parts": {
+            "dialog": {
+                "selector": ".lt-session-timeout__dialog",
+                "description": "The dialog with the warning, with `role=\"alertdialog\"`.",
+                "content": "parts"
+            },
+            "title": {
+                "selector": ".lt-session-timeout__title",
+                "description": "The heading in the dialog.",
+                "content": "text",
+                "optional": true
+            },
+            "text": {
+                "selector": ".lt-session-timeout__text",
+                "description": "The paragraph with the time remaining.",
+                "content": "text"
+            },
+            "count": {
+                "selector": ".lt-session-timeout__count",
+                "description": "The number that counts down, inside the paragraph. The component fills it.",
+                "content": "none"
+            },
+            "status": {
+                "selector": "[role='status']",
+                "description": "The announcement. Left empty, and the component fills it.",
+                "content": "none"
+            },
+            "actions": {
+                "selector": ".lt-session-timeout__actions",
+                "description": "The button row, a `<form method=\"dialog\">`.",
+                "content": "parts"
+            },
+            "button": {
+                "selector": ".lt-session-timeout__actions button",
+                "description": "The buttons that extend the session or log out.",
+                "content": "text",
+                "multiple": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-session-timeout__dialog": {
+        "component": "session-timeout",
+        "title": "Session Timeout",
+        "description": "Warns before a logged-in session expires, and counts down. You write the dialog, the component keeps the time.",
+        "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
+        "content": "parts",
+        "partOf": "lt-session-timeout",
+        "parts": {
+            "title": {
+                "selector": ".lt-session-timeout__title",
+                "description": "The heading.",
+                "content": "text",
+                "optional": true
+            },
+            "text": {
+                "selector": ".lt-session-timeout__text",
+                "description": "The paragraph with the time remaining.",
+                "content": "text"
+            },
+            "count": {
+                "selector": ".lt-session-timeout__count",
+                "description": "The number that counts down, inside the paragraph.",
+                "content": "none"
+            },
+            "status": {
+                "selector": "[role='status']",
+                "description": "The announcement, which the component fills.",
+                "content": "none"
+            },
+            "actions": {
+                "selector": ".lt-session-timeout__actions",
+                "description": "The button row, a `<form method=\"dialog\">`.",
+                "content": "parts"
+            }
+        },
+        "attributes": {}
+    },
+    "lt-session-timeout__title": {
+        "component": "session-timeout",
+        "title": "Session Timeout",
+        "description": "Warns before a logged-in session expires, and counts down. You write the dialog, the component keeps the time.",
+        "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
+        "content": "text",
+        "partOf": "lt-session-timeout",
+        "attributes": {}
+    },
+    "lt-session-timeout__text": {
+        "component": "session-timeout",
+        "title": "Session Timeout",
+        "description": "Warns before a logged-in session expires, and counts down. You write the dialog, the component keeps the time.",
+        "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
+        "content": "text",
+        "partOf": "lt-session-timeout",
+        "attributes": {}
+    },
+    "lt-session-timeout__count": {
+        "component": "session-timeout",
+        "title": "Session Timeout",
+        "description": "Warns before a logged-in session expires, and counts down. You write the dialog, the component keeps the time.",
+        "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
+        "content": "none",
+        "partOf": "lt-session-timeout",
+        "attributes": {}
+    },
+    "lt-session-timeout__actions": {
+        "component": "session-timeout",
+        "title": "Session Timeout",
+        "description": "Warns before a logged-in session expires, and counts down. You write the dialog, the component keeps the time.",
+        "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
+        "content": "parts",
+        "partOf": "lt-session-timeout",
+        "parts": {
+            "button": {
+                "selector": "button",
+                "description": "The buttons that extend the session or log out.",
+                "content": "text",
+                "multiple": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-suggestion__list": {
+        "component": "suggestion",
+        "title": "Suggestion",
+        "description": "Field with a suggestion list that narrows as the user types. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/suggestion/",
+        "content": "parts",
+        "parts": {
+            "option": {
+                "selector": "[role='option'], .lt-suggestion__option, > li:not([role])",
+                "description": "One suggestion: the role or the class when they are there, otherwise an `<li>` without a role, which the component gives the class and the role. The list can be empty until the server fills it.",
+                "content": "text",
+                "multiple": true,
+                "optional": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-suggestion__option": {
+        "component": "suggestion",
+        "title": "Suggestion",
+        "description": "Field with a suggestion list that narrows as the user types. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/suggestion/",
+        "content": "text",
+        "partOf": "lt-suggestion__list",
+        "attributes": {}
+    },
+    "lt-suggestion__value": {
+        "component": "suggestion",
+        "title": "Suggestion",
+        "description": "Field with a suggestion list that narrows as the user types. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/suggestion/",
+        "content": "none",
+        "attributes": {}
+    },
+    "lt-suggestion__empty": {
+        "component": "suggestion",
+        "title": "Suggestion",
+        "description": "Field with a suggestion list that narrows as the user types. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/suggestion/",
+        "content": "text",
+        "attributes": {}
+    },
+    "lt-tabs__list": {
+        "component": "tabs",
+        "title": "Tabs",
+        "description": "Tab list of links to their panels. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/tabs/",
+        "content": "free",
+        "parts": {
+            "tab": {
+                "selector": "a[role='tab'][href^='#'], a[href^='#']:not([role])",
+                "description": "A tab: a link to its panel, such as `<a href=\"#attachments\">`. When the server has written `role=\"tab\"`, only the links with the role are tabs, and the list can hold other links. `role=\"tab\"` on something that is not a link is not a tab.",
+                "content": "text",
+                "multiple": true
+            }
+        },
+        "attributes": {}
+    },
+    "lt-tabs__panel": {
+        "component": "tabs",
+        "title": "Tabs",
+        "description": "Tab list of links to their panels. Frame component.",
+        "link": "https://lo-tek.sobernetics.no/components/tabs/",
+        "content": "free",
+        "attributes": {}
+    },
+    "lt-connection-status": {
+        "component": "connection-status",
+        "title": "Connection Status",
+        "description": "Tells the user when the connection to the server is gone. Standalone component.",
+        "link": "https://lo-tek.sobernetics.no/components/connection-status/",
+        "content": "none",
+        "attributes": {}
+    },
+    "lt-connection-status__bar": {
+        "component": "connection-status",
+        "title": "Connection Status",
+        "description": "Tells the user when the connection to the server is gone. Standalone component.",
+        "link": "https://lo-tek.sobernetics.no/components/connection-status/",
+        "content": "text",
+        "attributes": {}
+    },
+    "lt-toast": {
+        "component": "toast",
+        "title": "Toast",
+        "description": "A queue of short messages in the corner of the screen. Standalone component.",
+        "link": "https://lo-tek.sobernetics.no/components/toast/",
+        "content": "none",
+        "attributes": {}
+    },
+    "lt-toast__message": {
+        "component": "toast",
+        "title": "Toast",
+        "description": "A queue of short messages in the corner of the screen. Standalone component.",
+        "link": "https://lo-tek.sobernetics.no/components/toast/",
+        "content": "free",
+        "attributes": {}
+    },
+    "lt-toast__close": {
+        "component": "toast",
+        "title": "Toast",
+        "description": "A queue of short messages in the corner of the screen. Standalone component.",
+        "link": "https://lo-tek.sobernetics.no/components/toast/",
+        "content": "text",
+        "attributes": {}
+    },
+    "lt-theme-control": {
+        "component": "customising",
+        "title": "Customising",
+        "description": "Change colours, shape and size in LO-TEK without losing the changes on the next upgrade.",
+        "link": "https://lo-tek.sobernetics.no/customising/",
+        "content": "none",
+        "attributes": {}
+    }
+};
+//# sourceMappingURL=classes.js.map

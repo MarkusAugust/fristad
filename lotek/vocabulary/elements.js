@@ -1,0 +1,410 @@
+export const elements = {
+    "lt-field": {
+        "link": "https://lo-tek.sobernetics.no/components/field/",
+        "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup produced without JavaScript. When the markup is produced with JavaScript, use `lt.field()` instead.",
+        "attributes": {
+            "disabled": {
+                "type": "flag",
+                "description": "The control is disabled."
+            },
+            "optional": {
+                "type": "flag",
+                "description": "The field is optional, and the label says so."
+            },
+            "described-by": {
+                "type": "text",
+                "description": "Extra ids to include in `aria-describedby`, separated by spaces."
+            }
+        },
+        "parts": {
+            "label": {
+                "selector": "label",
+                "description": "The label. When it is outside the element, it is wired with `for` to the control's id.",
+                "content": "text"
+            },
+            "control": {
+                "selector": "input:not([type='hidden']), textarea, select",
+                "description": "The control the field wires: an `<input>`, `<textarea>` or `<select>` with its `<option>`s. `type=\"hidden\"` does not count, and only the first one is wired. The template writes `for` on the label and `id` on the control, or wraps the control in the label.",
+                "content": "none",
+                "unique": true,
+                "stableId": true
+            },
+            "help": {
+                "selector": ".lt-help-text",
+                "description": "The help text, which is read out together with the control.",
+                "content": "text",
+                "unique": true,
+                "optional": true
+            },
+            "error": {
+                "selector": ".lt-error-text",
+                "description": "The error text, which is shown and read out when the field is invalid.",
+                "content": "text",
+                "unique": true,
+                "optional": true
+            }
+        },
+        "removed": {
+            "invalid": "The field is invalid when the error text, `.lt-error-text`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden=\"!$invalid\"` on the error text.",
+            "required-marker": "The required marker is `data-required` on `<label>`, and then shows without JavaScript too.",
+            "control-id": "Write `id` on the control and `for` on the label in the template. The component never writes an id on the control."
+        }
+    },
+    "lt-tabs": {
+        "link": "https://lo-tek.sobernetics.no/components/tabs/",
+        "description": "Tab list. The tabs are links to the panels in an `.lt-tabs__list`, so without JavaScript the list is a table of contents; `role=\"tab\"` on anything other than a link is not a tab. The component adds keyboard and focus handling, sets roles and wiring, gives each panel its tab's name, makes only the selected panel a tab stop, and hides the rest with `hidden=\"until-found\"`, so find in page and links into a panel reach them. Each selection is written to the URL. It never writes an id on a tab or a panel. When the page loads, the selected tab is the one with `aria-selected` from the server, otherwise the one the URL points to, otherwise the first one not hidden with `hidden`. Under `server-controlled` the URL never selects.",
+        "attributes": {
+            "server-controlled": {
+                "type": "flag",
+                "description": "The server decides which tab is selected. The component does not put the user's selection back after an update from the server, and the URL selects no tab. A click and find in page select the tab until the server responds."
+            },
+            "activation": {
+                "type": "values",
+                "values": [
+                    "manual",
+                    "automatic"
+                ],
+                "description": "What the arrow keys do. By default they select the tab at once."
+            }
+        },
+        "parts": {
+            "list": {
+                "selector": "[role='tablist'], .lt-tabs__list",
+                "description": "The tab list, a `<ul>` where each `<li>` gets `role=\"presentation\"`. It needs a name, such as `aria-label`. When the server has written `role=\"tab\"` on the links, the list can also hold other links.",
+                "content": "free",
+                "unique": true
+            },
+            "tab": {
+                "selector": "a[role='tab'][href^='#'], .lt-tabs__list a[href^='#']:not([role])",
+                "description": "A tab: a link to its panel, `<a href=\"#attachments\">`. The component writes `aria-controls` from `href`. `role=\"tab\"` on something that is not a link is not a tab.",
+                "content": "text",
+                "multiple": true
+            },
+            "panel": {
+                "selector": "[role='tabpanel'], .lt-tabs__panel:not([role])",
+                "description": "The content of one tab, with the id the link points to. The panel has the same name as the tab: the heading at the top of the panel is the name when it says the same as the tab.",
+                "content": "free",
+                "multiple": true
+            }
+        },
+        "events": {
+            "tab-select": {
+                "detail": {
+                    "index": "number"
+                }
+            }
+        }
+    },
+    "lt-error-summary": {
+        "link": "https://lo-tek.sobernetics.no/components/error-summary/",
+        "description": "Error summary. Moves focus to the box when it appears, and to the control when a link in the list is followed.",
+        "attributes": {
+            "data-autofocus": {
+                "type": "values",
+                "values": [
+                    "false",
+                    "true"
+                ],
+                "description": "Whether focus moves to the box when it appears. On by default."
+            },
+            "hidden": {
+                "type": "flag",
+                "description": "The box is hidden. The server removes the attribute when the form fails, and the component then moves focus."
+            }
+        },
+        "parts": {
+            "title": {
+                "selector": "h1, h2, h3, h4, h5, h6",
+                "description": "The heading in the box. The component gives it the title class.",
+                "content": "text"
+            },
+            "link": {
+                "selector": "li a[href^='#']",
+                "description": "A link to a field with an error, in a list item. `href` is `#` and the field's id.",
+                "content": "text",
+                "multiple": true
+            }
+        }
+    },
+    "lt-popover": {
+        "link": "https://lo-tek.sobernetics.no/components/popover/",
+        "description": "A panel that hangs from a button and closes itself. A button and a panel with the class `lt-popover` and an id from the template; the component sets `popover` and `aria-controls` where the markup came without them, but never the id.",
+        "attributes": {
+            "open": {
+                "type": "flag",
+                "description": "The panel is open. The server can send the attribute to open the panel."
+            },
+            "placement": {
+                "type": "values",
+                "values": [
+                    "bottom-start",
+                    "bottom-end",
+                    "top-start",
+                    "top-end"
+                ],
+                "description": "Which edge of the button the panel hangs from."
+            },
+            "server-controlled": {
+                "type": "flag",
+                "description": "The server decides whether the panel is open. The component does not put `open` back when an update from the server removes it."
+            }
+        },
+        "parts": {
+            "trigger": {
+                "selector": "button, [role='button']",
+                "description": "The button that opens and closes the panel: the one with `aria-controls` pointing at the panel's id, otherwise the first button outside the panel.",
+                "content": "text"
+            },
+            "panel": {
+                "selector": "[popover], .lt-popover",
+                "description": "The panel that opens: the element with `popover`, or the class. It needs an id from the server, which `aria-controls` on the button points to. The component never creates one, and without it the button cannot be wired to the panel.",
+                "content": "free",
+                "stableId": true
+            }
+        },
+        "events": {
+            "popover-toggle": {
+                "detail": {
+                    "open": "boolean"
+                }
+            }
+        }
+    },
+    "lt-suggestion": {
+        "link": "https://lo-tek.sobernetics.no/components/suggestion/",
+        "description": "Field with a suggestion list. A `<label for>`, an `<input id>`, an `.lt-suggestion__list` with `<li>` items and a `[role=status]` are enough; the component sets the roles and the wiring where the markup came without them, and gives the list and the options ids. The field never gets an id from the component. Filters as the user types, moves the highlight with the arrow keys and announces the number of matches.",
+        "attributes": {
+            "prefiltered": {
+                "type": "flag",
+                "description": "The app has already filtered the list, so the component leaves it as it is. Needed when the app's filter is something other than \"the text contains the search term\"."
+            },
+            "count-none": {
+                "type": "text",
+                "description": "The announcement for no matches. The default is \"No matches\"."
+            },
+            "count-zero": {
+                "type": "text",
+                "description": "The announcement in the plural form `zero`, for languages that have it. `{n}` is the number."
+            },
+            "count-one": {
+                "type": "text",
+                "description": "The announcement for one match. `{n}` is the number."
+            },
+            "count-two": {
+                "type": "text",
+                "description": "The announcement in the plural form `two`, for languages that have it. `{n}` is the number."
+            },
+            "count-few": {
+                "type": "text",
+                "description": "The announcement in the plural form `few`, for languages that have it. `{n}` is the number."
+            },
+            "count-many": {
+                "type": "text",
+                "description": "The announcement in the plural form `many`, for languages that have it. `{n}` is the number."
+            },
+            "count-other": {
+                "type": "text",
+                "description": "The announcement for every other count, and the fallback when a form is missing. `{n}` is the number."
+            },
+            "server-controlled": {
+                "type": "flag",
+                "description": "The server decides whether the list is expanded and which option is highlighted. The component does not put them back after an update from the server."
+            }
+        },
+        "parts": {
+            "control": {
+                "selector": "[role='combobox'], input:not([type='hidden'])",
+                "description": "The field the user types in: `role=\"combobox\"`, otherwise the first `<input>`. The template writes `for` on the label and `id` on the field, or wraps the field in the label.",
+                "content": "none",
+                "unique": true,
+                "stableId": true
+            },
+            "list": {
+                "selector": "[role='listbox'], .lt-suggestion__list",
+                "description": "The list of suggestions. It sits in the top layer when it is open, `popover=\"manual\"`, and has the label as its name.",
+                "content": "parts",
+                "unique": true
+            },
+            "option": {
+                "selector": "[role='option'], .lt-suggestion__list > li:not([role])",
+                "description": "One suggestion in the list: `role=\"option\"`, or an `<li>` without a role.",
+                "content": "text",
+                "multiple": true
+            },
+            "empty": {
+                "selector": ".lt-suggestion__empty",
+                "description": "The message shown when nothing matches.",
+                "content": "text",
+                "unique": true,
+                "optional": true
+            },
+            "status": {
+                "selector": "[role='status']",
+                "description": "The announcement of the number of matches. The element is left empty, and the component fills it.",
+                "content": "none"
+            },
+            "value": {
+                "selector": "input.lt-suggestion__value",
+                "description": "A hidden `<input>` that gets the `data-value` of the option the user chose. Without it, only the text in the field is submitted.",
+                "content": "none",
+                "unique": true,
+                "optional": true
+            }
+        },
+        "events": {
+            "suggestion-select": {
+                "detail": {
+                    "value": "string",
+                    "label": "string"
+                }
+            }
+        }
+    },
+    "lt-dialog": {
+        "link": "https://lo-tek.sobernetics.no/components/dialog/",
+        "description": "Makes a `<dialog class=\"lt-dialog\">` modal with `showModal()`, for servers that cannot call it themselves. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.",
+        "attributes": {
+            "open": {
+                "type": "flag",
+                "description": "The dialog is open. For the server to show it, `open` must be on `<dialog>` too."
+            },
+            "server-controlled": {
+                "type": "flag",
+                "description": "When an update from the server removes `open` from `<dialog>` while the dialog is open, the component closes it and dispatches `dialog-toggle`, instead of putting `open` back."
+            }
+        },
+        "parts": {
+            "dialog": {
+                "selector": ":scope > dialog",
+                "description": "The `<dialog>` element, as a direct child of the host.",
+                "content": "free",
+                "unique": true
+            },
+            "title": {
+                "selector": "h1, h2, h3, h4, h5, h6",
+                "description": "The title: what `aria-labelledby` points to, otherwise the first heading outside the body. With `aria-label` on `<dialog>` it is not needed.",
+                "content": "text",
+                "optional": true
+            },
+            "body": {
+                "selector": ".lt-dialog__body",
+                "description": "The body, which scrolls when the dialog gets too tall. A heading here does not become the title.",
+                "content": "free",
+                "unique": true,
+                "optional": true
+            }
+        },
+        "events": {
+            "dialog-toggle": {
+                "detail": {
+                    "open": "boolean",
+                    "returnValue": "string"
+                }
+            }
+        }
+    },
+    "lt-toast": {
+        "link": "https://lo-tek.sobernetics.no/components/toast/",
+        "description": "A queue of short messages in the corner of the screen. The messages are created from script with `show(text, { color, duration })`.",
+        "attributes": {
+            "duration": {
+                "type": "number",
+                "description": "Milliseconds before a message disappears. The default is 6000, and 0 keeps the messages."
+            },
+            "label": {
+                "type": "text",
+                "description": "Text that tells screen readers what the region is for."
+            },
+            "close-label": {
+                "type": "text",
+                "description": "What the close button in each message is called for screen readers. The default is \"Close message\"."
+            }
+        },
+        "parts": {},
+        "events": {
+            "toast-dismiss": {}
+        }
+    },
+    "lt-session-timeout": {
+        "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
+        "description": "Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method=\"dialog\">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.",
+        "attributes": {
+            "warn-at": {
+                "type": "number",
+                "description": "Seconds without activity before the warning appears."
+            },
+            "expires-at": {
+                "type": "number",
+                "description": "Seconds without activity before the session expires."
+            },
+            "activity-interval": {
+                "type": "number",
+                "description": "Seconds between each `session-activity` while the user is active. Default 60."
+            }
+        },
+        "parts": {
+            "dialog": {
+                "selector": "dialog",
+                "description": "The `<dialog>` element with the warning.",
+                "content": "free",
+                "unique": true
+            },
+            "title": {
+                "selector": "h1, h2, h3, h4, h5, h6",
+                "description": "The heading in the dialog, which becomes its name when neither `aria-labelledby` nor `aria-label` is on `<dialog>`.",
+                "content": "text",
+                "optional": true
+            },
+            "text": {
+                "selector": ".lt-session-timeout__text",
+                "description": "The paragraph with the time remaining. The announcement is this paragraph with the number replaced.",
+                "content": "text",
+                "unique": true
+            },
+            "count": {
+                "selector": ".lt-session-timeout__count",
+                "description": "The number that counts down, inside the paragraph. The component fills it.",
+                "content": "none",
+                "unique": true
+            },
+            "status": {
+                "selector": "[role='status']",
+                "description": "The announcement. The element is left empty, and the component fills it.",
+                "content": "none"
+            },
+            "button": {
+                "selector": "form[method=\"dialog\" i] button",
+                "description": "The buttons in `<form method=\"dialog\">`, which extend the session or log out.",
+                "content": "text",
+                "multiple": true
+            }
+        },
+        "events": {
+            "session-warn": {},
+            "session-extend": {},
+            "session-logout": {},
+            "session-expired": {},
+            "session-activity": {}
+        }
+    },
+    "lt-connection-status": {
+        "link": "https://lo-tek.sobernetics.no/components/connection-status/",
+        "description": "Tells the user when the connection to the server is lost. The app reports with `reportFailure()` and `reportSuccess()`.",
+        "attributes": {
+            "offline-text": {
+                "type": "text",
+                "description": "The text when the connection is lost."
+            },
+            "online-text": {
+                "type": "text",
+                "description": "The text when it comes back."
+            }
+        },
+        "parts": {},
+        "events": {
+            "connection-lost": {},
+            "connection-restored": {}
+        }
+    }
+};
+//# sourceMappingURL=elements.js.map
