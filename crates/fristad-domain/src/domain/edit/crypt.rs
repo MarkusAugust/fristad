@@ -117,12 +117,12 @@ impl Editor {
             Ref::Crypt { level, .. } | Ref::CryptLight { level, .. } => *level,
             _ => return None,
         };
-        self.built.levels.iter().find(|l| l.n == n).map(|l| l.origin)
+        self.below.built.levels.iter().find(|l| l.n == n).map(|l| l.origin)
     }
 
     /// Krypten slik den står nå (nivåene, rommene og origo).
     pub fn built_crypt(&self) -> &Crypt {
-        &self.built
+        &self.below.built
     }
 
     /// Det som står i kryptnivåene, til lagring og til å bygge spillet på nytt.
@@ -134,7 +134,7 @@ impl Editor {
     /// for); blir valget.
     pub(super) fn place_in_crypt(&mut self, model: &str, pose: Affine3A) -> Option<Ref> {
         let at = Vec3::from(pose.translation);
-        let level = &self.built.levels[self.built.level_at(at)?];
+        let level = &self.below.built.levels[self.below.built.level_at(at)?];
         let mut m = mark_for(model)?;
         m.pos = Some((at - level.origin).to_array());
         m.yaw = Pose::of(pose).yaw();

@@ -101,7 +101,6 @@ impl Editor {
     /// draget, om det er en).
     pub fn settle(&mut self, refs: &[Ref]) {
         // Flatene under måles i byen slik den står etter draget.
-        self.flush();
         let mut changes = vec![];
         for r in refs {
             let (Some(foot), Some(t)) = (self.foot(r), self.pose_of(r)) else {

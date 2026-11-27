@@ -102,6 +102,26 @@ fn is_room(model: &str) -> bool {
 /// venter på ny runde.
 pub fn check(b: &Builder, layout: &Layout, approved: Option<&HashSet<String>>, touched: &HashSet<Ref>) -> Vec<Breach> {
     let mut out = vec![];
+    let grid = collider_grid(&b.colliders);
+    placed_breaches(b, &grid, approved, touched, &mut out);
+    inside_breaches(b, layout, &grid, &mut out);
+    house_breaches(b, layout, &mut out);
+    out.sort_by(|a, b| a.r.cmp(&b.r).then(a.why.cmp(&b.why)));
+    out.dedup();
+    out
+}
+
+/// Reglene for krypten bygget for seg (`edit::crypt_scene`): det som
+/// svever, mangler kollider eller ikke er godkjent. Husene og det som står
+/// inni noe, gjelder bare byen.
+pub fn check_below(b: &Builder, approved: Option<&HashSet<String>>, touched: &HashSet<Ref>) -> Vec<Breach> {
+    let mut out = vec![];
+    placed_breaches(b, &collider_grid(&b.colliders), approved, touched, &mut out);
+    out
+}
+
+/// Det som gjelder hver instans som er satt ut, i byen og i krypten.
+fn placed_breaches(b: &Builder, grid: &Grid, approved: Option<&HashSet<String>>, touched: &HashSet<Ref>, out: &mut Vec<Breach>) {
     let origin: HashMap<(&str, usize), &Ref> = b.origins.iter().map(|(m, n, r)| ((*m, *n), r)).collect();
     // Svever eller står nede.
     for (model, n, why) in b.ground_findings() {
@@ -109,10 +129,7 @@ pub fn check(b: &Builder, layout: &Layout, approved: Option<&HashSet<String>>, t
             out.push(Breach { r: (*r).clone(), why });
         }
     }
-    let grid = collider_grid(&b.colliders);
-    collider_breaches(b, &grid, &mut out);
-    inside_breaches(b, layout, &grid, &mut out);
-    house_breaches(b, layout, &mut out);
+    collider_breaches(b, grid, out);
     if let Some(ok) = approved {
         for (model, _, r) in &b.origins {
             if touched.contains(r) && !ok.contains(*model) {
@@ -120,9 +137,6 @@ pub fn check(b: &Builder, layout: &Layout, approved: Option<&HashSet<String>>, t
             }
         }
     }
-    out.sort_by(|a, b| a.r.cmp(&b.r).then(a.why.cmp(&b.why)));
-    out.dedup();
-    out
 }
 
 /// Verdens mål for en instans: hjørnene av modellens boks satt ut med `t`.
@@ -146,7 +160,7 @@ pub fn lacks_collider(colliders: &[Shape], lo: Vec3, hi: Vec3, t: &Affine3A) -> 
 }
 
 /// Rutenettet over kolliderne, med luft nok til slingringen i reglene.
-fn collider_grid(colliders: &[Shape]) -> Grid {
+pub(super) fn collider_grid(colliders: &[Shape]) -> Grid {
     Grid::new(colliders.iter().map(|c| c.span(0.5)))
 }
 

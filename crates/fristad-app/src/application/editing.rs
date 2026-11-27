@@ -199,7 +199,7 @@ impl Editing {
             }
             EditCommand::Press { at, add, grab } => {
                 // Et drag som aldri ble sluppet (musa gikk ut av vinduet).
-                self.editor_mut().flush();
+                self.editor_mut().end_group();
                 self.ui.carry = Vec3::ZERO;
                 self.ui.carry_turn = 0.0;
                 self.ui.standing.clear();
@@ -672,14 +672,11 @@ impl Editing {
         }
         let mut shown = vec![];
         let scene = e.scene();
-        // Det som dras nå, står i byen der det sto før draget (`preview`).
-        let dragged: HashMap<(&str, usize), Affine3A> = e.preview().into_iter().map(|(m, n, d)| ((m, n), d)).collect();
-        for pl in &scene.placements {
-            for (n, (t, tint)) in pl.transforms.iter().zip(&pl.tints).enumerate() {
-                let t = dragged.get(&(pl.model, n)).map_or(*t, |d| *d * *t);
-                match base.get_mut(&pose_key(pl.model, &t)).and_then(|v| v.pop()) {
+        for pl in e.scenes().into_iter().flat_map(|b| &b.placements) {
+            for (t, tint) in pl.transforms.iter().zip(&pl.tints) {
+                match base.get_mut(&pose_key(pl.model, t)).and_then(|v| v.pop()) {
                     Some(_) => {}
-                    None => shown.push(ModelInstance { model: pl.model, transform: t, skin: None, flash: 0.0, tint: (*tint != Vec3::ONE).then_some(*tint), look: None }),
+                    None => shown.push(ModelInstance { model: pl.model, transform: *t, skin: None, flash: 0.0, tint: (*tint != Vec3::ONE).then_some(*tint), look: None }),
                 }
             }
         }
