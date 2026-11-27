@@ -231,6 +231,7 @@ def main(argv):
         from . import review
         os.makedirs(review.LOCAL, exist_ok=True)
         items, carried = review.build(review.LOCAL, local=True)
+        review.write_waiting()
         for key, label in review.CATEGORIES:
             c = [it for it in items if it["cat"] == key]
             print(f"{label}: {sum(it['state'] == 'venter' for it in c)} venter, {sum(it['state'] == 'hos_meg' for it in c)} hos meg, {sum(it['state'] == 'godkjent' for it in c)} godkjent")
@@ -240,6 +241,12 @@ def main(argv):
         return 1 if missing else 0
     if argv[:1] == ["svar"]:
         print(f"{answer(json.load(sys.stdin))} dommer ført inn i assets/catalog/approvals.json")
+        return 0
+    if argv[:1] == ["venter"]:
+        from . import review
+        review.write_waiting()
+        w = review.load("venter.json")
+        print(f"{len(w['models'])} modeller og {len(w['modules'])} moduler og kort venter")
         return 0
     if argv[:1] == ["audit"]:
         from . import review

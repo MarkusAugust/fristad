@@ -3,7 +3,7 @@
   "name": "Tronsalen",
   "theme": "grav",
   "kind": "ferdig",
-  "about": "En sal på 12 × 12 m med fire søyler, tronen mot nordmuren, faner på murene, statuer og rustninger langs veggene.",
+  "about": "En sal på 12 × 12 m med fire søyler, tronen mot nordmuren, faner på murene, rustninger langs veggene.",
   "rooms": [
     {"id": "rom", "name": "Tronsalen", "theme": "borg", "mood": {"torches": 0.45}}
   ],
@@ -23,8 +23,8 @@
   ],
   "things": [
     {"id": "trone", "kind": "prop", "anchor": "celle:c10", "pos": [0, 0, -0.85], "yaw": 0, "label": "kit_throne", "size": [1.6, 1.4]},
-    {"id": "statue_v", "kind": "prop", "anchor": "celle:c00", "pos": [-0.9, 0, -1.0], "yaw": 30, "label": "kit_statue", "size": [1.4, 1.0]},
-    {"id": "statue_o", "kind": "prop", "anchor": "celle:c20", "pos": [0.9, 0, -1.0], "yaw": -30, "label": "kit_statue", "size": [1.4, 1.0]},
+    {"id": "rustning3", "kind": "prop", "anchor": "celle:c00", "pos": [-0.9, 0, -1.0], "yaw": 30, "label": "kit_armor", "size": [0.8, 0.6]},
+    {"id": "rustning4", "kind": "prop", "anchor": "celle:c20", "pos": [0.9, 0, -1.0], "yaw": -30, "label": "kit_armor", "size": [0.8, 0.6]},
     {"id": "rustning1", "kind": "prop", "anchor": "celle:c01", "pos": [-1.25, 0, 0], "yaw": 90, "label": "kit_armor", "size": [0.8, 0.6]},
     {"id": "rustning2", "kind": "prop", "anchor": "celle:c21", "pos": [1.25, 0, 0], "yaw": -90, "label": "kit_armor", "size": [0.8, 0.6]},
     {"id": "fane1", "kind": "prop", "anchor": "celle:c10", "pos": [-1.2, 2.9, -1.58], "yaw": 0, "label": "kit_banner"},

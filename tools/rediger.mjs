@@ -13,7 +13,7 @@
 // Tjeneren lytter bare på denne maskinen, og skriver bare json-filer under
 // assets/layout/ og assets/levels/, og dommene.
 
-import { execFileSync } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, resolve } from "node:path";
@@ -60,6 +60,7 @@ async function body(req) {
 // Dommene fra godkjenningssiden: GET gir svarene som er gitt siden siden ble
 // bygd (id → svar), POST fører ett svar rett inn i approvals.json med de
 // samme reglene som før (`python3 -m tools.qa approvals svar`).
+let waitingTimer = 0;
 function verdicts(req, res, input) {
   const file = join(DOM, "svar.json");
   if (req.method === "GET") {
@@ -70,6 +71,10 @@ function verdicts(req, res, input) {
   if (!/^[tmu]_[A-Za-z0-9_]+$/.test(input.id ?? "") || typeof input.data !== "object") return res.writeHead(400).end("Ugyldig svar.");
   const venv = join(ROOT, "target", "qa", "venv", "bin", "python");
   const out = execFileSync(existsSync(venv) ? venv : "python3", ["-m", "tools.qa", "approvals", "svar"], { cwd: ROOT, input: JSON.stringify(input) });
+  // Lista over det som venter (assets/catalog/venter.json) følger dommene. Den
+  // tar noen sekunder, så den skrives i bakgrunnen når dommene har stilnet.
+  clearTimeout(waitingTimer);
+  waitingTimer = setTimeout(() => execFile(existsSync(venv) ? venv : "python3", ["-m", "tools.qa", "approvals", "venter"], { cwd: ROOT }, () => {}), 3000);
   console.log(`Dom over ${input.id}: ${input.data.verdict || "punkt uten dom"} (${String(out).trim()})`);
   res.writeHead(200, { "Content-Type": TYPES[".json"] }).end("{}");
 }

@@ -211,7 +211,10 @@ export function buildPalette() {
       b.title = m.about || m.name;
       const [theme, name] = m.id.split("/");
       b.dataset.theme = theme;
-      b.innerHTML = `<img alt="" loading="lazy" draggable="false" src="moduler/${theme}/${name}.jpg"><span>${m.name}</span>`;
+      // Bare avvikene merkes (eieren 26. november), med eierens grunn.
+      const odd = oddLabel(palette.verdicts?.modules?.[m.id]);
+      if (odd) b.title = `${odd.title}\n${b.title}`;
+      b.innerHTML = `<img alt="" loading="lazy" draggable="false" src="moduler/${theme}/${name}.jpg"><span>${m.name}</span>${odd ? `<em class="odd" data-state="${odd.state}">${odd.text}</em>` : ""}`;
       b.addEventListener("dragstart", (e) => e.preventDefault());
       // Bildet fra `module_shots.py`; eierens nye moduler har ikke noe ennå.
       b.querySelector("img").onerror = (e) => e.target.replaceWith(Object.assign(document.createElement("div"), { className: "noimg", textContent: "Bilde mangler" }));
@@ -251,14 +254,46 @@ export function buildPalette() {
   filter();
   const things = $("thinglist");
   for (const [kind, name] of palette.things.filter(([k]) => !["mob", "elite", "boss"].includes(k))) {
-    things.append(chip(name, () => armThing(kind, null), kind));
+    things.append(marked(chip(name, () => armThing(kind, null), kind), kind));
   }
   const mobs = $("moblist");
-  for (const [key, name] of palette.mobs) mobs.append(chip(name.replace(/^Korrupt /, ""), () => armThing("mob", key), `mob:${key}`));
+  for (const [key, name] of palette.mobs) mobs.append(marked(chip(name.replace(/^Korrupt /, ""), () => armThing("mob", key), `mob:${key}`), `mob:${key}`));
   mobs.append(chip("Elite …", () => armThing("elite", "button"), "elite"));
   mobs.append(chip("Boss …", () => armThing("boss", "modal"), "boss"));
   // Lys du setter selv (dra dem etterpå; farge, styrke og flamme i panelet).
   things.append(chip("Lys", armLight, "light"));
+}
+
+const ODD = { underkjent: "Underkjent", usikker: "Usikker", venter: "Venter på dom" };
+
+/// Merket for et avvik (`palette.verdicts`), eller null når det er godkjent.
+function oddLabel(v) {
+  if (!v) return null;
+  const text = ODD[v.state] || v.state;
+  return { state: v.state, text, title: v.why ? `${text}: ${v.why}` : text };
+}
+
+/// En brikke for en ting eller fiende: avviket som en prikk med eierens
+/// grunn, og et bilde av modellen når du peker på den.
+function marked(b, key) {
+  const odd = oddLabel(palette.verdicts?.things?.[key]);
+  if (odd) {
+    b.dataset.state = odd.state;
+    b.title = odd.title;
+  }
+  const model = palette.pictures?.[key];
+  if (!model) return b;
+  b.addEventListener("pointerenter", () => {
+    const pic = $("chippic");
+    const r = b.getBoundingClientRect();
+    pic.querySelector("img").src = `catalog/${model}.jpg`;
+    pic.querySelector("span").textContent = odd ? odd.title : "";
+    pic.style.left = `${r.right + 8}px`;
+    pic.style.top = `${Math.max(8, Math.min(r.top - 40, innerHeight - 260))}px`;
+    pic.hidden = false;
+  });
+  b.addEventListener("pointerleave", () => ($("chippic").hidden = true));
+  return b;
 }
 
 function armLight() {

@@ -292,6 +292,10 @@ pub struct Palette {
     pub groups: Vec<(&'static str, &'static str)>,
     /// Lydene et rom kan ha (`doc::SOUNDS`).
     pub sounds: Vec<(&'static str, &'static str)>,
+    /// Eierens avvik på modulene, tingene og fiendene (`verdicts`), og
+    /// modellen bildet av en ting eller fiende viser. Adapteren fyller dem.
+    pub verdicts: super::verdicts::Verdicts,
+    pub pictures: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Serialize, Debug, Clone, PartialEq)]
@@ -389,6 +393,8 @@ pub fn palette(kit: &KitDef, mobs: Vec<(String, String)>, loot: Vec<String>) -> 
         links: LINK_NAMES.to_vec(),
         groups: GROUPS.to_vec(),
         sounds: crate::domain::world::crypt::doc::SOUNDS.to_vec(),
+        verdicts: Default::default(),
+        pictures: super::verdicts::THING_PICTURES.iter().map(|(k, m)| (k.to_string(), m.to_string())).collect(),
     }
 }
 

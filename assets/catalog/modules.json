@@ -46,7 +46,8 @@
    "^crypt_\\d\\d_"
   ],
   "navn": [
-   "kit_secret_wall"
+   "kit_secret_wall",
+   "kit_statue"
   ]
  },
  "mekanismer": {
@@ -443,36 +444,6 @@
       ],
       "yaw": 120,
       "pitch": -10
-     }
-    ]
-   },
-   {
-    "id": "statue",
-    "name": "Statue",
-    "about": "Steinstatuen i hjørnet av hallen.",
-    "modeller": [
-     "kit_statue"
-    ],
-    "bilder": [
-     {
-      "nivaa": "mekanismer",
-      "eye": [
-       -17.0,
-       1.65,
-       -3.4
-      ],
-      "yaw": 72,
-      "pitch": 2
-     },
-     {
-      "nivaa": "mekanismer",
-      "eye": [
-       -19.4,
-       1.65,
-       -1.8
-      ],
-      "yaw": 15,
-      "pitch": 6
      }
     ]
    },

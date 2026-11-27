@@ -43,7 +43,16 @@ pub fn level_palette() -> String {
     let kit = crate::adapters::data::kit();
     let mobs = crate::domain::mob_kind::Kind::ALL.iter().map(|k| (k.key().to_string(), k.label().to_string())).collect();
     let loot = crate::domain::craft::GALLERY.iter().map(|c| c.to_string()).collect();
-    serde_json::to_string(&map::palette(&kit, mobs, loot)).unwrap_or_default()
+    palette_json(&kit, mobs, loot)
+}
+
+/// Paletten for byggesettet `kit` som json, med eierens avvik og bildene
+/// av fiendene (`data::level_verdicts`).
+fn palette_json(kit: &crate::domain::world::crypt::kit::KitDef, mobs: Vec<(String, String)>, loot: Vec<String>) -> String {
+    let mut p = map::palette(kit, mobs, loot);
+    p.verdicts = crate::adapters::data::level_verdicts(kit);
+    p.pictures.extend(crate::domain::mob_kind::Kind::ALL.iter().map(|k| (format!("mob:{}", k.key()), k.model().to_string())));
+    serde_json::to_string(&p).unwrap_or_default()
 }
 
 /// Les et dokument (json). Feilen som tekst.
@@ -89,7 +98,8 @@ pub async fn start_level_editor(
         }
         None => LevelEditor::blank("Nytt nivå", 1, "grav", &kit),
     };
-    let prepared = prepare_level_editor(&files, seed, LevelEditor::new(doc, kit));
+    let verdicts = crate::adapters::data::level_verdicts(&kit);
+    let prepared = prepare_level_editor(&files, seed, LevelEditor::new(doc, kit).with_verdicts(verdicts));
     let layers = match manifest_json {
         Some(m) => {
             let files: std::collections::HashMap<String, Vec<u8>> = names.iter().zip(blobs.iter()).filter_map(|(n, b)| Some((n.as_string()?, js_sys::Uint8Array::new(&b).to_vec()))).collect();
@@ -229,7 +239,7 @@ impl Engine {
         let Some(l) = self.app.session.level_editing() else { return level_palette() };
         let mobs = crate::domain::mob_kind::Kind::ALL.iter().map(|k| (k.key().to_string(), k.label().to_string())).collect();
         let loot = crate::domain::craft::GALLERY.iter().map(|c| c.to_string()).collect();
-        serde_json::to_string(&map::palette(l.editor.kit(), mobs, loot)).unwrap_or_default()
+        palette_json(l.editor.kit(), mobs, loot)
     }
 
     /// Åpne et annet dokument (json). Gir kartet eller `{"error": …}`.

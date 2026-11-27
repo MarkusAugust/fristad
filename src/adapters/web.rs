@@ -517,15 +517,18 @@ impl Engine {
     }
 
     /// Alle modellene som kan settes ut, til katalogen: navn, kategori
-    /// (`data::category`), eierens dom og hvorfor, som json-liste.
+    /// (`data::category`), eierens dom og hvorfor, og om den venter på dom
+    /// (`waiting`: ny, eller endret etter dommen), som json-liste.
     pub fn catalog(&self) -> String {
         let approvals: serde_json::Value = serde_json::from_str(crate::adapters::data::APPROVALS).unwrap_or_default();
         let buildings = crate::adapters::data::buildings();
+        let waiting = crate::adapters::data::waiting("models");
         let list: Vec<serde_json::Value> = model_files()
             .filter_map(|(name, path)| {
                 let group = crate::adapters::data::category(name, path, &buildings)?;
                 let a = &approvals["models"][name];
-                Some(serde_json::json!({"name": name, "group": group, "verdict": a["verdict"], "why": a["why"]}))
+                let waiting = waiting.contains(*name) || a["verdict"].is_null();
+                Some(serde_json::json!({"name": name, "group": group, "verdict": a["verdict"], "why": a["why"], "waiting": waiting}))
             })
             .collect();
         serde_json::Value::Array(list).to_string()

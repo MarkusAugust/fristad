@@ -36,7 +36,6 @@
     {"id": "fallem1", "kind": "trapdoor", "anchor": "fri", "pos": [7.6, 0, -2.6], "yaw": 0, "label": "bolted", "size": [1.2, 1.2]},
     {"id": "opp1", "kind": "up", "anchor": "fri", "pos": [0, 0, 8.6], "yaw": 180},
     {"id": "trone", "kind": "prop", "anchor": "fri", "pos": [-21.0, 0, 0], "yaw": 90, "label": "kit_throne"},
-    {"id": "statue", "kind": "prop", "anchor": "fri", "pos": [-20.6, 0, -4.6], "yaw": 45, "label": "kit_statue"},
     {"id": "rustning", "kind": "prop", "anchor": "fri", "pos": [-20.6, 0, 4.6], "yaw": 135, "label": "kit_armor"},
     {"id": "stativ", "kind": "prop", "anchor": "fri", "pos": [-16.0, 0, -5.3], "yaw": 0, "label": "kit_rack"},
     {"id": "sarkofag", "kind": "prop", "anchor": "fri", "pos": [-16.0, 0, 0], "yaw": 90, "label": "kit_sarcophagus"},

@@ -1368,6 +1368,17 @@ body.editing #marks {
   min-width: 0;
 }
 
+.editor-odd {
+  display: flex;
+  gap: var(--lt-spacing-2, 0.5rem);
+  align-items: center;
+}
+
+.editor-odd a {
+  margin-left: auto;
+  font-size: 0.8125rem;
+}
+
 .editor-section > * + * {
   margin-top: var(--lt-spacing-2, 0.5rem);
 }

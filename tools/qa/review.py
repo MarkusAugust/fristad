@@ -1073,6 +1073,25 @@ def _font(h):
     return ImageFont.load_default()
 
 
+def awaiting():
+    """Det som venter på eierens dom, til redigeringene (`?edit` og `?nivaa`
+    merker det med «Venter på dom»): modellene som har eget kort, og modulene
+    og mekanismekortene. Spillet kan ikke regne det ut selv (versjonen er
+    blobene i git), så lista står i `assets/catalog/venter.json`, og `audit`
+    feiler når den ikke stemmer (`python3 -m tools.qa approvals venter`)."""
+    ap = load("approvals.json")
+    fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
+    out = {"models": [], "modules": []}
+    for _, k, n, p in things():
+        if k != "tekstur" and state_of(k, n, ap.get(group_of(k), {}).get(n), current(k, n, p), fix_for(fixes, n)) == "venter":
+            out[group_of(k)].append(n)
+    return {"_om": "Det som venter på eierens dom. Skrives av `python3 -m tools.qa approvals venter`, ikke for hånd.", "models": sorted(out["models"]), "modules": sorted(out["modules"])}
+
+
+def write_waiting():
+    save("venter.json", awaiting())
+
+
 def audit():
     """Det som kan sjekkes uten å bygge siden (testen `dommen_mister_ingenting`):
     hver dom har versjonen eieren så, hver ting i katalogen har en fil, og alt
@@ -1090,6 +1109,8 @@ def audit():
                 errors.append(f"dommen over {n} mangler versjonen eieren så (`seen`)")
     errors += rule_errors()
     errors += answer_errors()
+    if not os.path.exists(os.path.join(DATA, "venter.json")) or load("venter.json") != awaiting():
+        errors.append("assets/catalog/venter.json stemmer ikke: kjør `python3 -m tools.qa approvals venter`")
     fixes = load("fixes.json") if os.path.exists(os.path.join(DATA, "fixes.json")) else {}
     # «Rettet slik» er punkter (siden viser én linje per punkt).
     for n, vs in fixes.items():
