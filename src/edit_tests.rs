@@ -186,12 +186,12 @@ fn tid_per_endring() {
 }
 
 /// Spillet satt sammen for redigering (alle modellene, med plass til å flytte).
-fn edit_world() -> &'static crate::application::Prepared {
+pub(crate) fn edit_world() -> &'static crate::application::Prepared {
     static P: std::sync::OnceLock<crate::application::Prepared> = std::sync::OnceLock::new();
     P.get_or_init(|| crate::application::prepare_for_edit(&crate::adapters::gltf::Embedded, 7))
 }
 
-fn edit_session(physics: &mut crate::adapters::rapier::RapierPhysics) -> crate::application::Session {
+pub(crate) fn edit_session(physics: &mut crate::adapters::rapier::RapierPhysics) -> crate::application::Session {
     let p = edit_world();
     let mut s = crate::application::Session::new(&p.world, physics, &crate::application::rigs(&p.models));
     s.edit.data = p.edit.clone();

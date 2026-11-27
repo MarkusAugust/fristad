@@ -10,7 +10,7 @@
 //! - modellen er godkjent av eieren (bare det som er endret).
 
 use crate::domain::world::layout::{Layout, Ref};
-use crate::domain::world::{terrain, town, Builder, Shape};
+use crate::domain::world::{terrain, town, Builder, Grid, Shape};
 use glam::{Affine3A, Vec2, Vec3};
 use std::collections::{HashMap, HashSet};
 
@@ -109,8 +109,9 @@ pub fn check(b: &Builder, layout: &Layout, approved: Option<&HashSet<String>>, t
             out.push(Breach { r: (*r).clone(), why });
         }
     }
-    collider_breaches(b, &mut out);
-    inside_breaches(b, layout, &mut out);
+    let grid = collider_grid(&b.colliders);
+    collider_breaches(b, &grid, &mut out);
+    inside_breaches(b, layout, &grid, &mut out);
     house_breaches(b, layout, &mut out);
     if let Some(ok) = approved {
         for (model, _, r) in &b.origins {
@@ -141,6 +142,16 @@ pub fn world_box(lo: Vec3, hi: Vec3, t: &Affine3A) -> (Vec3, Vec3) {
 /// 30 cm har en kollider ved foten, eller høyere opp på midtlinja for det
 /// som er åpent nede (portrommet). Samme regel som `alt_stort_har_kollider`.
 pub fn lacks_collider(colliders: &[Shape], lo: Vec3, hi: Vec3, t: &Affine3A) -> Option<Vec3> {
+    lacks_collider_in(colliders, &collider_grid(colliders), lo, hi, t)
+}
+
+/// Rutenettet over kolliderne, med luft nok til slingringen i reglene.
+fn collider_grid(colliders: &[Shape]) -> Grid {
+    Grid::new(colliders.iter().map(|c| c.span(0.5)))
+}
+
+/// Som `lacks_collider`, med kolliderne funnet i rutenettet.
+fn lacks_collider_in(colliders: &[Shape], grid: &Grid, lo: Vec3, hi: Vec3, t: &Affine3A) -> Option<Vec3> {
     let (wlo, whi) = world_box(lo, hi, t);
     let size = whi - wlo;
     if size.y < 0.6 || size.x.max(size.z) < 0.3 {
@@ -149,11 +160,11 @@ pub fn lacks_collider(colliders: &[Shape], lo: Vec3, hi: Vec3, t: &Affine3A) -> 
     let o = Vec3::from(t.translation);
     let q = Vec3::new(o.x, wlo.y + 0.5, o.z);
     let steps = ((whi.y - wlo.y - 1.0) / 0.5).max(0.0) as usize;
-    let covered = (0..=steps).any(|k| colliders.iter().any(|c| c.covers_shaped(q + Vec3::Y * (k as f32 * 0.5), 0.35)));
+    let covered = (0..=steps).any(|k| grid.at(q.x, q.z).any(|c| colliders[c].covers_shaped(q + Vec3::Y * (k as f32 * 0.5), 0.35)));
     (!covered).then_some(q)
 }
 
-fn collider_breaches(b: &Builder, out: &mut Vec<Breach>) {
+fn collider_breaches(b: &Builder, grid: &Grid, out: &mut Vec<Breach>) {
     for (model, n, r) in &b.origins {
         if is_room(model) {
             continue;
@@ -161,7 +172,7 @@ fn collider_breaches(b: &Builder, out: &mut Vec<Breach>) {
         let (Some((lo, hi)), Some(t)) = (b.bounds(model), b.placements.iter().find(|p| p.model == *model).and_then(|p| p.transforms.get(*n))) else {
             continue;
         };
-        if let Some(q) = lacks_collider(&b.colliders, lo, hi, t) {
+        if let Some(q) = lacks_collider_in(&b.colliders, grid, lo, hi, t) {
             out.push(Breach { r: r.clone(), why: format!("{model} ved ({:.1}, {:.1}) har ingen kollider", q.x, q.z) });
         }
     }
@@ -172,7 +183,7 @@ fn collider_breaches(b: &Builder, out: &mut Vec<Breach>) {
 /// en annen ting. Det som henger på en vegg, husene selv, bitene som skjøtes
 /// (`joins`), og det som ikke har modell (usynlige vegger, som gjerdene står
 /// i), er unntatt.
-fn inside_breaches(b: &Builder, layout: &Layout, out: &mut Vec<Breach>) {
+fn inside_breaches(b: &Builder, layout: &Layout, grid: &Grid, out: &mut Vec<Breach>) {
     let item_of = |r: &Ref| {
         let it = match r {
             Ref::Town(i) => layout.items.get(*i),
@@ -181,7 +192,7 @@ fn inside_breaches(b: &Builder, layout: &Layout, out: &mut Vec<Breach>) {
         }?;
         Some((it.model.as_deref().is_some_and(|m| !joins(m)), it.building))
     };
-    let solid: Vec<(usize, &Ref)> = b.solid_origins.iter().enumerate().filter_map(|(k, o)| o.as_ref().map(|r| (k, r))).filter(|(_, r)| item_of(r).is_some()).collect();
+    let solid: Vec<Option<&Ref>> = b.solid_origins.iter().map(|o| o.as_ref().filter(|r| item_of(r).is_some())).collect();
     for (model, n, r) in &b.origins {
         if is_room(model) || joins(model) || b.mounted.contains(&(*model, *n)) || item_of(r).is_none_or(|(_, building)| building) {
             continue;
@@ -195,7 +206,7 @@ fn inside_breaches(b: &Builder, layout: &Layout, out: &mut Vec<Breach>) {
             let f = |i: usize, lo: f32, hi: f32| lo + (hi - lo) * [0.0, 0.5, 1.0][i];
             let fy = [0.25, 0.5, 0.75][(k / 3) % 3];
             let p = t.transform_point3(Vec3::new(f(k % 3, a.x, z.x), lo.y + (hi.y - lo.y) * fy, f(k / 9, a.z, z.z)));
-            solid.iter().find(|(c, o)| *o != r && b.colliders[*c].covers(p, -0.02)).map(|(_, o)| (*o).clone())
+            grid.at(p.x, p.z).find_map(|c| solid[c].filter(|o| *o != r && b.colliders[c].covers(p, -0.02))).cloned()
         });
         if let Some(o) = hit {
             out.push(Breach { r: r.clone(), why: format!("{model} står inni {}", name_of(b, layout, &o)) });

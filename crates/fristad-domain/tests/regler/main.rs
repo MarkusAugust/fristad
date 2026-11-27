@@ -11,6 +11,7 @@ use fristad_domain::domain;
 
 mod craft;
 mod data;
+mod grid;
 mod level_doc;
 mod level_editor;
 mod loot;

@@ -8,7 +8,8 @@ use super::{crypt, scene, Sources};
 use crate::domain::world::crypt::level::{CryptContents, LightDef, MarkDef};
 use crate::domain::world::crypt::Crypt;
 use crate::domain::world::layout::{Item, Layout, LightDef as ItemLightDef, NpcDef, Pose, Ref, SolidDef};
-use crate::domain::world::{Builder, Shape};
+use crate::domain::world::{Builder, Grid, Shape};
+use std::cell::OnceCell;
 use glam::{Affine3A, Quat, Vec3};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -77,6 +78,12 @@ pub struct Editor {
     /// klikk på samme sted (eller Tab) velger det neste under pekeren.
     pub(super) last_ray: Option<(Vec3, Vec3)>,
     pub(super) under: Vec<Ref>,
+    /// Det som er dratt siden byen sist ble bygget, og hvor det sto da
+    /// (`preview`).
+    pub(super) moved: Vec<(Ref, Affine3A)>,
+    /// Rutenettene over gulvene og kolliderne i `scene`, laget når noen
+    /// spør (`grids`) og kastet når byen bygges på nytt.
+    grids: OnceCell<(Grid, Grid)>,
 }
 
 /// En nøkkel for innholdet i en ting, til å telle like ting.
@@ -104,6 +111,8 @@ impl Editor {
             group: None,
             last_ray: None,
             under: vec![],
+            moved: vec![],
+            grids: OnceCell::new(),
         };
         e.original = e.census();
         e.refresh();
@@ -137,6 +146,8 @@ impl Editor {
             group: None,
             last_ray: None,
             under: vec![],
+            moved: vec![],
+            grids: OnceCell::new(),
         }
     }
 
@@ -153,11 +164,18 @@ impl Editor {
 
     /// Begynn en gruppe endringer som angres som én (dra med et håndtak).
     pub fn begin_group(&mut self) {
+        self.flush();
         self.group = Some(false);
     }
 
     pub fn end_group(&mut self) {
         self.group = None;
+        self.flush();
+    }
+
+    /// Et drag er i gang (`begin_group`).
+    pub(super) fn dragging(&self) -> bool {
+        self.group.is_some()
     }
 
     pub(super) fn list_of(r: &Ref) -> String {
@@ -290,6 +308,11 @@ impl Editor {
         if changes.is_empty() {
             return;
         }
+        // Et drag som bare flytter ting: byen bygges når det slippes.
+        let preview = self.previewable(&changes);
+        if preview {
+            self.note_moved(&changes);
+        }
         for c in &changes {
             self.apply(c);
         }
@@ -301,7 +324,9 @@ impl Editor {
             self.group = Some(true);
         }
         self.redo.clear();
-        self.refresh();
+        if !preview {
+            self.refresh();
+        }
     }
 
     pub fn undo(&mut self) -> bool {
@@ -331,7 +356,9 @@ impl Editor {
     }
 
     /// Bygg byen på nytt fra dataene og sjekk reglene.
-    fn refresh(&mut self) {
+    pub(super) fn refresh(&mut self) {
+        self.moved.clear();
+        self.grids = OnceCell::new();
         (self.scene, self.built) = scene(&self.src, &self.layout, &self.contents, &self.crypt);
         let touched = self.touched();
         self.breaches = rules::check(&self.scene, &self.layout, self.approved.as_ref(), &touched);
@@ -628,15 +655,21 @@ impl Editor {
         Some(rules::world_box(c - h, c + h, &t).0.y)
     }
 
+    /// Rutenettene over gulvene og kolliderne i byen slik den står.
+    pub(super) fn grids(&self) -> &(Grid, Grid) {
+        self.grids.get_or_init(|| (self.scene.floor_grid(), Grid::new(self.scene.colliders.iter().map(|c| c.span(0.5)))))
+    }
+
     /// Høyden på det noe kan stå på i (x, z) under `below`: bakken, et gulv,
     /// eller toppen av en kollider (et bord, en kasse), men ikke tingens egne.
     pub fn surface_under(&self, x: f32, z: f32, below: f32, own: Option<&Ref>) -> f32 {
-        let mut best = self.scene.stand_height(x, z, below);
-        for (shape, o) in self.scene.colliders.iter().zip(&self.scene.solid_origins) {
-            if own.is_some() && o.as_ref() == own {
+        let (floors, solids) = self.grids();
+        let mut best = self.scene.stand_height_in(floors, x, z, below);
+        for k in solids.at(x, z) {
+            if own.is_some() && self.scene.solid_origins[k].as_ref() == own {
                 continue;
             }
-            if let Shape::Cuboid { center, size, yaw } = shape {
+            if let Shape::Cuboid { center, size, yaw } = &self.scene.colliders[k] {
                 let d = Quat::from_rotation_y(-*yaw) * (Vec3::new(x, center.y, z) - *center);
                 let top = center.y + size.y * 0.5;
                 if d.x.abs() <= size.x * 0.5 && d.z.abs() <= size.z * 0.5 && top <= below && top > best {

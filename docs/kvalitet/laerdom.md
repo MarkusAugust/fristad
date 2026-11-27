@@ -283,3 +283,7 @@ Eieren ba om en selvstendig, malt introfilm og om å droppe blandingen med spill
 
 I første versjon av den selvstendige filmen sto figurene der kamerabanen førte dem, ikke på gulvet i maleriene: munkene, kjøpmennene og Ansgar svevde, munkene sto dobbelt i Skriptoriet, og alt gikk, svaiet og fløy. Eieren: «Riktig plassering er mye viktigere enn at ting svever rundt … ikke dette sirkuset.» Regler: komponer hver scene først, sett fra et fast kamera, med foten til hver figur på gulvet i maleriet (målt fra alfaen) eller under bildekanten; kameraet holder høyden i scenen og beveger seg lite; ingen gange eller svaiing i lagene; legg aldri på figurer som alt står i maleriet. Se på hver scene med figurene før noe annet (`tools/film/intro.py`).
 
+
+## 27. november: redigeringen av byen ble ubrukelig treg uten at noen merket det
+
+Å dra en ting i `?edit` tok 700 ms per steg musa gikk i nettleseren (325 ms i release på Mac). Hvert steg bygde byen og alle kryptnivåene på nytt og sjekket hver ting mot hver kollider (1 200 ting mot 48 000 kollidere), og nettlaget sendte ett steg per musehendelse, flere per bilde. Dokumentasjonen sa 17 ms, målt da krypten var liten. Regler: det som gjøres per musebevegelse eller per bilde, skal ikke vokse med verden (vis endringen, bygg når den er ferdig); et søk gjennom alt for hver ting skal gå gjennom et rutenett (`world::Grid`); og et tall i dokumentasjonen om hvor fort noe går, måles på nytt når verden har vokst. Mål i nettleseren, ikke bare i release på Mac: Wasm var over dobbelt så tregt.
