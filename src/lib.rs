@@ -28,6 +28,8 @@ mod catalog_tests;
 #[cfg(test)]
 mod crypt_tests;
 #[cfg(test)]
+mod edit_drag_tests;
+#[cfg(test)]
 mod edit_tests;
 #[cfg(test)]
 mod lazy_tests;

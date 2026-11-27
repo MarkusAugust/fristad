@@ -21,7 +21,9 @@ pub mod portal;
 pub mod terrain;
 pub mod town;
 
+mod grid;
 mod shape;
+pub use grid::Grid;
 pub use shape::Shape;
 
 /// Siktemålet skal aldri ligge inni tingens egen kollider (eieren 18.
@@ -330,9 +332,28 @@ impl Builder {
     /// Høyden på det noe kan stå på i et punkt: det registrerte gulvet eller
     /// terrenget som ligger nærmest under `y`.
     pub fn stand_height(&self, x: f32, z: f32, y: f32) -> f32 {
+        self.stand_among(self.floors.iter(), x, z, y)
+    }
+
+    /// Rutenettet over gulvene, til mange spørsmål etter hverandre
+    /// (`stand_height_in`).
+    pub fn floor_grid(&self) -> Grid {
+        Grid::new(self.floors.iter().map(|(c, half, yaw, _)| {
+            let (s, co) = yaw.sin_cos();
+            let h = Vec2::new(co.abs() * half.x + s.abs() * half.y, s.abs() * half.x + co.abs() * half.y);
+            Some((Vec2::new(c.x, c.z) - h, Vec2::new(c.x, c.z) + h))
+        }))
+    }
+
+    /// Som `stand_height`, med gulvene funnet i rutenettet fra `floor_grid`.
+    pub fn stand_height_in(&self, grid: &Grid, x: f32, z: f32, y: f32) -> f32 {
+        self.stand_among(grid.at(x, z).map(|k| &self.floors[k]), x, z, y)
+    }
+
+    fn stand_among<'a>(&self, floors: impl Iterator<Item = &'a (Vec3, Vec2, f32, f32)>, x: f32, z: f32, y: f32) -> f32 {
         let mut best = terrain::height(x, z);
         let score = |top: f32| if top <= y + 0.3 { y - top } else { 1e6 + top - y };
-        for (c, half, yaw, top) in &self.floors {
+        for (c, half, yaw, top) in floors {
             let (s, co) = yaw.sin_cos();
             let (dx, dz) = (x - c.x, z - c.z);
             let lx = dx * co - dz * s;
@@ -461,13 +482,14 @@ impl Builder {
     /// så redigeringen kan vise det på tingen (`edit::rules`).
     pub fn ground_findings(&self) -> Vec<(&'static str, usize, String)> {
         let mut out = vec![];
+        let floors = self.floor_grid();
         for pl in &self.placements {
             let Some(info) = self.models.get(pl.model) else { continue };
             for (n, t) in pl.transforms.iter().enumerate() {
                 if self.mounted.contains(&(pl.model, n)) {
                     continue;
                 }
-                for why in self.ground_gap(pl.model, info, t) {
+                for why in self.ground_gap(&floors, pl.model, info, t) {
                     out.push((pl.model, n, why));
                 }
             }
@@ -476,7 +498,7 @@ impl Builder {
     }
 
     /// Står én instans på bakken (eller gulvet)? Gir det som er galt.
-    fn ground_gap(&self, model: &str, info: &ModelInfo, t: &Affine3A) -> Vec<String> {
+    fn ground_gap(&self, floors: &Grid, model: &str, info: &ModelInfo, t: &Affine3A) -> Vec<String> {
         let mut out = vec![];
         // Måles innen 60 cm fra origo: trær har krona langt utenfor stammen.
         let (hx, hz) = ((info.max.x - info.min.x).min(1.2) * 0.5, (info.max.z - info.min.z).min(1.2) * 0.5);
@@ -496,7 +518,7 @@ impl Builder {
             let full = [(info.min.x, info.min.z), (info.max.x, info.min.z), (info.min.x, info.max.z), (info.max.x, info.max.z)];
             for (x, z) in full {
                 let w = t.transform_point3(Vec3::new(x, info.min.y, z));
-                let ground = self.stand_height(w.x, w.z, t.translation.y + 1.0);
+                let ground = self.stand_height_in(floors, w.x, w.z, t.translation.y + 1.0);
                 if w.y > ground + 0.02 {
                     out.push(format!("{} ved ({:.1}, {:.1}): grunnmuren slutter {:.0} cm over bakken i et hjørne", model, t.translation.x, t.translation.z, (w.y - ground) * 100.0));
                 }
@@ -506,7 +528,7 @@ impl Builder {
         let base = if info.min.y < -0.3 { 0.0 } else { info.min.y };
         let gaps = corners.map(|(x, z)| {
             let w = t.transform_point3(Vec3::new(x, base, z));
-            w.y - self.stand_height(w.x, w.z, w.y + reach)
+            w.y - self.stand_height_in(floors, w.x, w.z, w.y + reach)
         });
         let lowest = gaps.iter().cloned().fold(f32::MAX, f32::min);
         let at = t.translation;

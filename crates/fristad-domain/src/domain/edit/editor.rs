@@ -1,14 +1,16 @@
 //! `Editor`: tilstanden i redigeringen. Dataene (byen, husenes innhold og
-//! det som står i kryptnivåene), valget, angre og gjøre om, og byen og
-//! krypten bygget fra dataene (`scene`) til reglene og til å finne tingene.
-//! Alt eieren gjør er en endring av dataene; alt bygges på nytt etter hver.
+//! det som står i kryptnivåene), valget, angre og gjøre om, og byen
+//! (`scene`) og krypten (`below`) bygget fra dataene til reglene og til å
+//! finne tingene. Alt eieren gjør er en endring av dataene; byen bygges på
+//! nytt etter hver, og krypten når den er endret.
 
 use super::rules::{self, Breach};
-use super::{crypt, scene, Sources};
+use super::below::Below;
+use super::{crypt, town_scene, Sources};
 use crate::domain::world::crypt::level::{CryptContents, LightDef, MarkDef};
-use crate::domain::world::crypt::Crypt;
 use crate::domain::world::layout::{Item, Layout, LightDef as ItemLightDef, NpcDef, Pose, Ref, SolidDef};
-use crate::domain::world::{Builder, Shape};
+use crate::domain::world::{Builder, Grid};
+use std::cell::OnceCell;
 use glam::{Affine3A, Quat, Vec3};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -59,8 +61,8 @@ pub struct Editor {
     pub contents: HashMap<String, Vec<Item>>,
     /// Det som står i kryptnivåene (merkene og lysene), per nivå.
     pub crypt: BTreeMap<u32, CryptContents>,
-    /// Krypten slik den står nå, bygget fra dataene.
-    pub(super) built: Crypt,
+    /// Krypten slik den står nå, bygget fra dataene (for seg, `below`).
+    pub(super) below: Below,
     /// Modellene eieren har godkjent (`approvals.json`); uten: ingen sjekk.
     pub(super) approved: Option<HashSet<String>>,
     pub selection: Vec<Ref>,
@@ -77,6 +79,10 @@ pub struct Editor {
     /// klikk på samme sted (eller Tab) velger det neste under pekeren.
     pub(super) last_ray: Option<(Vec3, Vec3)>,
     pub(super) under: Vec<Ref>,
+    /// Rutenettene over gulvene og kolliderne i `scene`, laget når noen
+    /// spør (`grids`) og kastet når byen bygges på nytt.
+    pub(super) grids: OnceCell<(Grid, Grid)>,
+    changes: OnceCell<(HashSet<Ref>, bool)>,
 }
 
 /// En nøkkel for innholdet i en ting, til å telle like ting.
@@ -87,23 +93,24 @@ fn key(list: &str, t: &Thing) -> String {
 impl Editor {
     pub fn new(src: Sources, layout: Layout, contents: HashMap<String, Vec<Item>>, approved: Option<HashSet<String>>) -> Self {
         let crypt: BTreeMap<u32, CryptContents> = src.levels.iter().map(|(n, f)| (*n, CryptContents { marks: f.marks.clone(), lights: f.lights.clone() })).collect();
-        let (scene, built) = scene(&src, &layout, &contents, &crypt);
         let mut e = Self {
             src,
             layout,
             contents,
             crypt,
-            built,
+            below: Below::empty(),
             approved,
             selection: vec![],
             undo: vec![],
             redo: vec![],
             original: HashMap::new(),
-            scene,
+            scene: Builder::new(&[]),
             breaches: vec![],
             group: None,
             last_ray: None,
             under: vec![],
+            grids: OnceCell::new(),
+            changes: OnceCell::new(),
         };
         e.original = e.census();
         e.refresh();
@@ -116,6 +123,7 @@ impl Editor {
     pub fn set_baseline(&mut self, layout: Layout, contents: HashMap<String, Vec<Item>>, crypt: BTreeMap<u32, CryptContents>) {
         let base = Editor { layout, contents, crypt, ..Self::empty(self.src.clone()) };
         self.original = base.census();
+        self.below.forget();
         self.refresh();
     }
 
@@ -126,7 +134,7 @@ impl Editor {
             layout: Layout::default(),
             contents: HashMap::new(),
             crypt: BTreeMap::new(),
-            built: Crypt::default(),
+            below: Below::empty(),
             approved: None,
             selection: vec![],
             undo: vec![],
@@ -137,6 +145,8 @@ impl Editor {
             group: None,
             last_ray: None,
             under: vec![],
+            grids: OnceCell::new(),
+            changes: OnceCell::new(),
         }
     }
 
@@ -156,8 +166,12 @@ impl Editor {
         self.group = Some(false);
     }
 
+    /// Mens gruppa varer, regnes ikke det som er endret (`changes`) ut for
+    /// hvert steg musa går; det gjøres her.
     pub fn end_group(&mut self) {
-        self.group = None;
+        if self.group.take() == Some(true) {
+            self.refresh();
+        }
     }
 
     pub(super) fn list_of(r: &Ref) -> String {
@@ -191,24 +205,32 @@ impl Editor {
     }
 
     /// Det som er nytt eller endret siden redigeringen begynte (det som ikke
-    /// finnes likt i dataene fra start).
-    pub fn touched(&self) -> HashSet<Ref> {
-        let mut left = self.original.clone();
-        let mut out = HashSet::new();
-        for r in self.refs() {
-            let Some(t) = self.get(&r) else { continue };
-            match left.get_mut(&key(&Self::list_of(&r), &t)) {
-                Some(n) if *n > 0 => *n -= 1,
-                _ => {
-                    out.insert(r);
+    /// finnes likt i dataene fra start), og om noe er endret i det hele tatt
+    /// (også slettet). Regnes ut én gang per ombygging (`refresh`).
+    fn changes(&self) -> &(HashSet<Ref>, bool) {
+        self.changes.get_or_init(|| {
+            let mut left = self.original.clone();
+            let mut out = HashSet::new();
+            for r in self.refs() {
+                let Some(t) = self.get(&r) else { continue };
+                match left.get_mut(&key(&Self::list_of(&r), &t)) {
+                    Some(n) if *n > 0 => *n -= 1,
+                    _ => {
+                        out.insert(r);
+                    }
                 }
             }
-        }
-        out
+            let dirty = !out.is_empty() || left.values().any(|n| *n > 0);
+            (out, dirty)
+        })
+    }
+
+    pub fn touched(&self) -> HashSet<Ref> {
+        self.changes().0.clone()
     }
 
     pub fn dirty(&self) -> bool {
-        !self.touched().is_empty() || self.census() != self.original
+        self.changes().1 || self.group == Some(true)
     }
 
     pub fn can_undo(&self) -> bool {
@@ -226,6 +248,11 @@ impl Editor {
     /// Byen slik den står nå, bygget fra dataene.
     pub fn scene(&self) -> &Builder {
         &self.scene
+    }
+
+    /// Byen og krypten, som er bygget hver for seg.
+    pub fn scenes(&self) -> [&Builder; 2] {
+        [&self.scene, &self.below.scene]
     }
 
     /// Alt er grønt: ingen regler brutt, så det kan lagres.
@@ -331,11 +358,16 @@ impl Editor {
     }
 
     /// Bygg byen på nytt fra dataene og sjekk reglene.
-    fn refresh(&mut self) {
-        (self.scene, self.built) = scene(&self.src, &self.layout, &self.contents, &self.crypt);
+    pub(super) fn refresh(&mut self) {
+        self.grids = OnceCell::new();
+        if self.group != Some(true) {
+            self.changes = OnceCell::new();
+        }
+        self.scene = town_scene(&self.src, &self.layout, &self.contents);
         let touched = self.touched();
+        self.below.refresh(&self.src, self.layout.crypt_anchor, &self.crypt, self.approved.as_ref(), &touched);
         self.breaches = rules::check(&self.scene, &self.layout, self.approved.as_ref(), &touched);
-        self.breaches.extend(crypt::breaches(&self.built, &self.crypt));
+        self.breaches.extend(self.below.breaches.iter().cloned());
         // Godkjent: også merkene som er endret i krypten.
         if let Some(ok) = &self.approved {
             for r in &touched {
@@ -626,25 +658,6 @@ impl Editor {
         let t = self.pose_of(r)?;
         let (c, h) = self.local_box(r)?;
         Some(rules::world_box(c - h, c + h, &t).0.y)
-    }
-
-    /// Høyden på det noe kan stå på i (x, z) under `below`: bakken, et gulv,
-    /// eller toppen av en kollider (et bord, en kasse), men ikke tingens egne.
-    pub fn surface_under(&self, x: f32, z: f32, below: f32, own: Option<&Ref>) -> f32 {
-        let mut best = self.scene.stand_height(x, z, below);
-        for (shape, o) in self.scene.colliders.iter().zip(&self.scene.solid_origins) {
-            if own.is_some() && o.as_ref() == own {
-                continue;
-            }
-            if let Shape::Cuboid { center, size, yaw } = shape {
-                let d = Quat::from_rotation_y(-*yaw) * (Vec3::new(x, center.y, z) - *center);
-                let top = center.y + size.y * 0.5;
-                if d.x.abs() <= size.x * 0.5 && d.z.abs() <= size.z * 0.5 && top <= below && top > best {
-                    best = top;
-                }
-            }
-        }
-        best
     }
 
     /// Kopier det valgte (Ctrl+D): kopiene står der originalene står og blir

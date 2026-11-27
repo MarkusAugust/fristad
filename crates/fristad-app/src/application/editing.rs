@@ -198,6 +198,8 @@ impl Editing {
                 return true;
             }
             EditCommand::Press { at, add, grab } => {
+                // Et drag som aldri ble sluppet (musa gikk ut av vinduet).
+                self.editor_mut().end_group();
                 self.ui.carry = Vec3::ZERO;
                 self.ui.carry_turn = 0.0;
                 self.ui.standing.clear();
@@ -670,7 +672,7 @@ impl Editing {
         }
         let mut shown = vec![];
         let scene = e.scene();
-        for pl in &scene.placements {
+        for pl in e.scenes().into_iter().flat_map(|b| &b.placements) {
             for (t, tint) in pl.transforms.iter().zip(&pl.tints) {
                 match base.get_mut(&pose_key(pl.model, t)).and_then(|v| v.pop()) {
                     Some(_) => {}

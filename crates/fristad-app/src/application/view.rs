@@ -50,7 +50,8 @@ impl Session {
         let lamp = ((t - 0.35) / 0.5).clamp(0.0, 1.0).max(overcast * 0.5 * (1.0 - t)) * 0.6 + ((t - 0.35) / 0.5).clamp(0.0, 1.0) * 0.4;
         let eye_now = self.eye();
         // Mens du redigerer, står lysene der redigeringen har satt dem.
-        let base = self.edit.editor.as_ref().map(|e| &e.scene().lights).unwrap_or(&self.lights);
+        let edited: Option<Vec<Light>> = self.edit.editor.as_ref().map(|e| e.scenes().iter().flat_map(|b| b.lights.iter().cloned()).collect());
+        let base = edited.as_ref().unwrap_or(&self.lights);
         let mut lights: Vec<Light> = base
             .iter()
             .enumerate()
@@ -280,7 +281,7 @@ impl Session {
     /// (eieren 12. oktober), og lokket kista.
     fn target_poses(&self) -> Vec<(Use, Affine3A)> {
         match &self.edit.editor {
-            Some(e) => e.scene().targets.iter().map(|t| (t.what, t.pose)).collect(),
+            Some(e) => e.scenes().iter().flat_map(|b| &b.targets).map(|t| (t.what, t.pose)).collect(),
             None => self.targets.iter().map(|t| (t.target.what, t.target.pose)).collect(),
         }
     }

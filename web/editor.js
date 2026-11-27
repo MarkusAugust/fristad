@@ -40,6 +40,8 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
   let lining = false;
   let looking = false;
   let pressed = false;
+  let dragAt = null;
+  let dragFrame = 0;
   let view = null;
   // Fest til rutenett og vinkel: bryteren i panelet, eller Ctrl holdt.
   let snapToggle = false;
@@ -127,6 +129,19 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     ghostShown = false;
   }
   const ghostModel = () => (dragModel?.moved ? dragModel.name : placing);
+
+  // Draget følger pekeren (høyst én gang per bilde: musa melder seg oftere
+  // enn bildet tegnes). Det siste punktet sendes før knappen slippes.
+  function drag(p) {
+    dragAt = p;
+    if (!dragFrame) dragFrame = requestAnimationFrame(sendDrag);
+  }
+  function sendDrag() {
+    cancelAnimationFrame(dragFrame);
+    dragFrame = 0;
+    if (dragAt) send({ cmd: "drag", ...dragAt });
+    dragAt = null;
+  }
 
   // Festet: bryteren, eller Ctrl holdt (motoren får det bare når det endres).
   function sendSnap() {
@@ -393,7 +408,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
     else if (boxFrom) {
       if (!boxing && Math.hypot(e.clientX - boxFrom.x, e.clientY - boxFrom.y) > SLOP) boxing = true;
       if (boxing) drawBox(e);
-    } else if (pressed) send({ cmd: "drag", ...at(e) });
+    } else if (pressed) drag(at(e));
     else {
       const model = ghostModel();
       if (model && onCanvas(e)) ghost(model, at(e));
@@ -437,6 +452,7 @@ export function createEditor({ engine, canvas, toast, onPlay, onLock, onEdit }) 
       boxing = false;
     } else if (pressed) {
       pressed = false;
+      sendDrag();
       send({ cmd: "release" });
       hint(e);
     }

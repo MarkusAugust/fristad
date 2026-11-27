@@ -62,7 +62,7 @@ impl Editor {
             let f = |i: usize, lo: f32, hi: f32| lo + (hi - lo) * [0.0, 0.5, 1.0][i];
             let fy = [0.25, 0.5, 0.75][(k / 3) % 3];
             let p = pose.transform_point3(Vec3::new(f(k % 3, a.x, z.x), lo.y + (hi.y - lo.y) * fy, f(k / 9, a.z, z.z)));
-            self.scene().colliders.iter().any(|c| c.covers(p, -0.02))
+            self.grids().iter().any(|(b, g)| g.1.at(p.x, p.z).any(|c| b.colliders[c].covers(p, -0.02)))
         });
         if inside && !rules::joins(model) {
             out.push("står inni noe".into());

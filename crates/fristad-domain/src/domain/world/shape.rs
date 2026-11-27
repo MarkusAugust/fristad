@@ -66,6 +66,23 @@ impl Shape {
         }
     }
 
+    /// Omrisset på bakken (laveste og høyeste x og z) med `pad` meter luft
+    /// rundt, til rutenettet (`Grid`). Terrenget har ikke noe omriss.
+    pub fn span(&self, pad: f32) -> Option<(Vec2, Vec2)> {
+        let (lo, hi) = match self {
+            Shape::Cuboid { center, size, yaw } => {
+                let (s, c) = yaw.sin_cos();
+                let h = Vec2::new(c.abs() * size.x + s.abs() * size.z, s.abs() * size.x + c.abs() * size.z) * 0.5;
+                (Vec2::new(center.x, center.z) - h, Vec2::new(center.x, center.z) + h)
+            }
+            Shape::Cylinder { center, radius, .. } => (Vec2::new(center.x - radius, center.z - radius), Vec2::new(center.x + radius, center.z + radius)),
+            Shape::Capsule { a, b, radius } => (Vec2::new(a.x.min(b.x) - radius, a.z.min(b.z) - radius), Vec2::new(a.x.max(b.x) + radius, a.z.max(b.z) + radius)),
+            Shape::Hull { points } => points.iter().fold((Vec2::MAX, Vec2::MIN), |(lo, hi), p| (lo.min(Vec2::new(p.x, p.z)), hi.max(Vec2::new(p.x, p.z)))),
+            Shape::Heightfield { .. } => return None,
+        };
+        Some((lo - pad, hi + pad))
+    }
+
     /// Hjørnene (eller punktene) formen spenner over, til mål og siktemål.
     pub fn corners(&self) -> Vec<Vec3> {
         match self {
